@@ -33,7 +33,7 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         self.setWindowTitle("Personal Vault")
-        self.resize(1200, 800)
+        self.resize(1200, 600)
         self.setMinimumSize(900, 600)
 
         self._load_stylesheet()
