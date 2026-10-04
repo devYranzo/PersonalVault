@@ -14,6 +14,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app.core.plugin_system import create_plugin_manager
+from app.core.plugins import PluginManager
 from app.ui.pages.ai_page import AIPage
 from app.ui.pages.connections_page import ConnectionsPage
 from app.ui.pages.dashboard_page import DashboardPage
@@ -28,6 +30,7 @@ ICONS_DIR = (
     / "icons"
 )
 
+
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
@@ -35,6 +38,8 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Personal Vault")
         self.resize(1200, 600)
         self.setMinimumSize(900, 600)
+
+        self.plugin_manager: PluginManager = create_plugin_manager()
 
         self._load_stylesheet()
         self._setup_ui()
@@ -64,13 +69,17 @@ class MainWindow(QMainWindow):
         self.sidebar = self._create_sidebar()
         self.content = QStackedWidget()
 
+        self.connections_page = ConnectionsPage(
+            plugin_manager=self.plugin_manager,
+        )
+
         self.pages = [
             DashboardPage(),
             TasksPage(),
             DocumentsPage(),
             KnowledgePage(),
             AIPage(),
-            ConnectionsPage(),
+            self.connections_page,
             SettingsPage(),
         ]
 
@@ -148,3 +157,7 @@ class MainWindow(QMainWindow):
 
         for button_index, button in enumerate(self.navigation_buttons):
             button.setChecked(button_index == index)
+
+    def closeEvent(self, event) -> None:
+        self.plugin_manager.shutdown_all()
+        event.accept()
