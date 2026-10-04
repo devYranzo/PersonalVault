@@ -1,27 +1,42 @@
 import importlib
 import pkgutil
 from dataclasses import dataclass
+from pathlib import Path
 from types import ModuleType
 
 from app.core.plugins.base import Plugin
+from app.core.plugins.registry import PluginRegistry
 from app.core.plugins.types import PluginStatus
 
 
 @dataclass
 class ManagedPlugin:
+    """
+    Representa un plugin gestionado por PluginManager.
+    """
+
     plugin: Plugin
     status: PluginStatus = PluginStatus.DISCOVERED
     error: str | None = None
 
 
 class PluginManager:
-    def __init__(self) -> None:
+    """
+    Gestiona los plugins disponibles en Personal Vault.
+
+    El manager se encarga del ciclo de vida de los plugins.
+
+    El PluginRegistry se encarga de recordar qué plugins
+    quiere tener activos el usuario.
+    """
+
+    def __init__(self, registry: PluginRegistry) -> None:
+        self._registry = registry
         self._plugins: dict[str, ManagedPlugin] = {}
 
     def discover_plugins(self) -> list[Plugin]:
         """
         Busca automáticamente plugins dentro de app.plugins.
-        Devuelve los plugins encontrados.
         """
 
         discovered: list[Plugin] = []
@@ -55,7 +70,10 @@ class PluginManager:
         """
 
         for attribute_name in dir(module):
-            attribute = getattr(module, attribute_name)
+            attribute = getattr(
+                module,
+                attribute_name,
+            )
 
             if not isinstance(attribute, type):
                 continue
@@ -78,9 +96,7 @@ class PluginManager:
         plugin_id = plugin.info.id
 
         if plugin_id in self._plugins:
-            raise ValueError(
-                f"El plugin '{plugin_id}' ya está registrado."
-            )
+            raise ValueError(f"El plugin '{plugin_id}' ya está registrado.")
 
         self._plugins[plugin_id] = ManagedPlugin(
             plugin=plugin,
@@ -89,8 +105,6 @@ class PluginManager:
     def unregister(self, plugin_id: str) -> None:
         """
         Elimina un plugin del manager.
-
-        Si estaba activo, primero lo desactiva.
         """
 
         if plugin_id not in self._plugins:
@@ -105,7 +119,7 @@ class PluginManager:
 
     def enable(self, plugin_id: str) -> None:
         """
-        Inicializa y activa un plugin.
+        Activa un plugin y guarda su estado.
         """
 
         managed_plugin = self._get_managed_plugin(plugin_id)
@@ -115,40 +129,72 @@ class PluginManager:
 
         try:
             managed_plugin.plugin.initialize()
+
             managed_plugin.status = PluginStatus.ENABLED
+
             managed_plugin.error = None
+
+            self._registry.enable(plugin_id)
 
         except Exception as exc:
             managed_plugin.status = PluginStatus.ERROR
+
             managed_plugin.error = str(exc)
 
             raise
 
     def disable(self, plugin_id: str) -> None:
         """
-        Desactiva un plugin.
+        Desactiva un plugin y guarda su estado.
         """
 
         managed_plugin = self._get_managed_plugin(plugin_id)
 
         if managed_plugin.status != PluginStatus.ENABLED:
             managed_plugin.status = PluginStatus.DISABLED
+
+            self._registry.disable(plugin_id)
+
             return
 
         try:
             managed_plugin.plugin.shutdown()
+
             managed_plugin.status = PluginStatus.DISABLED
+
             managed_plugin.error = None
+
+            self._registry.disable(plugin_id)
 
         except Exception as exc:
             managed_plugin.status = PluginStatus.ERROR
+
             managed_plugin.error = str(exc)
 
             raise
 
+    def restore_enabled_plugins(self) -> None:
+        """
+        Activa automáticamente los plugins que el usuario
+        tenía activos anteriormente.
+        """
+
+        enabled_plugins = self._registry.get_enabled_plugins()
+
+        for plugin_id in enabled_plugins:
+            if plugin_id not in self._plugins:
+                continue
+
+            try:
+                self.enable(plugin_id)
+
+            except Exception:
+                # El error ya queda registrado en ManagedPlugin.
+                continue
+
     def get_plugin(self, plugin_id: str) -> Plugin:
         """
-        Devuelve una instancia de plugin por ID.
+        Devuelve un plugin por ID.
         """
 
         return self._get_managed_plugin(plugin_id).plugin
@@ -162,7 +208,7 @@ class PluginManager:
 
     def get_enabled_plugins(self) -> list[ManagedPlugin]:
         """
-        Devuelve únicamente los plugins activos.
+        Devuelve los plugins activos.
         """
 
         return [
@@ -183,6 +229,10 @@ class PluginManager:
     def shutdown_all(self) -> None:
         """
         Desactiva todos los plugins activos.
+
+        Importante: esto NO elimina la configuración
+        persistente. Al volver a arrancar, los plugins
+        volverán a activarse.
         """
 
         for plugin_id in list(self._plugins):
@@ -191,16 +241,20 @@ class PluginManager:
             if managed_plugin.status != PluginStatus.ENABLED:
                 continue
 
-            self.disable(plugin_id)
+            managed_plugin.plugin.shutdown()
 
-    def _get_managed_plugin(self, plugin_id: str) -> ManagedPlugin:
+            managed_plugin.status = PluginStatus.DISABLED
+
+    def _get_managed_plugin(
+        self,
+        plugin_id: str,
+    ) -> ManagedPlugin:
         """
-        Obtiene un plugin gestionado o lanza un error.
+        Obtiene un plugin gestionado.
         """
 
         try:
             return self._plugins[plugin_id]
+
         except KeyError as exc:
-            raise KeyError(
-                f"No existe ningún plugin con ID '{plugin_id}'."
-            ) from exc
+            raise KeyError(f"No existe ningún plugin con ID '{plugin_id}'.") from exc
