@@ -5,8 +5,7 @@ from app.core.plugins.manager import PluginManager
 from app.plugins.example import ExamplePlugin
 
 
-def test_plugin_manager_discovers_example_plugin() -> None:
-    manager = PluginManager()
+def test_plugin_manager_discovers_example_plugin(manager: PluginManager) -> None:
 
     plugins = manager.discover_plugins()
 
@@ -14,8 +13,7 @@ def test_plugin_manager_discovers_example_plugin() -> None:
     assert plugins[0].info.id == "example"
 
 
-def test_plugin_manager_registers_plugin() -> None:
-    manager = PluginManager()
+def test_plugin_manager_registers_plugin(manager: PluginManager) -> None:
 
     plugin = ExamplePlugin()
 
@@ -28,8 +26,7 @@ def test_plugin_manager_registers_plugin() -> None:
     assert plugins[0].status == PluginStatus.DISCOVERED
 
 
-def test_plugin_manager_enables_plugin() -> None:
-    manager = PluginManager()
+def test_plugin_manager_enables_plugin(manager: PluginManager) -> None:
 
     plugin = ExamplePlugin()
 
@@ -40,8 +37,7 @@ def test_plugin_manager_enables_plugin() -> None:
     assert plugin.info.id == "example"
 
 
-def test_plugin_manager_disables_plugin() -> None:
-    manager = PluginManager()
+def test_plugin_manager_disables_plugin(manager: PluginManager) -> None:
 
     plugin = ExamplePlugin()
 
@@ -52,8 +48,7 @@ def test_plugin_manager_disables_plugin() -> None:
     assert not manager.is_enabled("example")
 
 
-def test_plugin_manager_get_plugin() -> None:
-    manager = PluginManager()
+def test_plugin_manager_get_plugin(manager: PluginManager) -> None:
 
     plugin = ExamplePlugin()
 
@@ -64,8 +59,7 @@ def test_plugin_manager_get_plugin() -> None:
     assert result is plugin
 
 
-def test_plugin_manager_duplicate_plugin() -> None:
-    manager = PluginManager()
+def test_plugin_manager_duplicate_plugin(manager: PluginManager) -> None:
 
     manager.register(ExamplePlugin())
 
@@ -73,15 +67,13 @@ def test_plugin_manager_duplicate_plugin() -> None:
         manager.register(ExamplePlugin())
 
 
-def test_plugin_manager_unknown_plugin() -> None:
-    manager = PluginManager()
+def test_plugin_manager_unknown_plugin(manager: PluginManager) -> None:
 
     with pytest.raises(KeyError):
         manager.get_plugin("does-not-exist")
 
 
-def test_plugin_manager_shutdown_all() -> None:
-    manager = PluginManager()
+def test_plugin_manager_shutdown_all(manager: PluginManager) -> None:
 
     manager.register(ExamplePlugin())
     manager.enable("example")
