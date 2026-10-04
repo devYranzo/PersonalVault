@@ -1,6 +1,6 @@
 from enum import StrEnum
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class PluginCapabilities(StrEnum):
@@ -10,10 +10,19 @@ class PluginCapabilities(StrEnum):
     DOCUMENTS = "documents"
 
 
+class PluginStatus(StrEnum):
+    DISCOVERED = "discovered"
+    ENABLED = "enabled"
+    DISABLED = "disabled"
+    ERROR = "error"
+
+
 class PluginInfo(BaseModel):
     id: str
     name: str
     version: str
     description: str
 
-    capabilities: list[PluginCapabilities] = []
+    capabilities: list[PluginCapabilities] = Field(
+        default_factory=list
+    )

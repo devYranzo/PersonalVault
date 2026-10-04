@@ -31,14 +31,19 @@ class Plugin(ABC):
         """
         Conecta el plugin con su servicio externo.
 
-        No todos los plugins necesitan autenticación,
-        por lo que por defecto no hace nada.
+        No todos los plugins necesitan conexión.
         """
 
     def disconnect(self) -> None:
         """
         Desconecta el plugin del servicio externo.
         """
+
+    def is_connected(self) -> bool:
+        """
+        Indica si el plugin está conectado a su servicio externo.
+        """
+        return False
 
     def get_courses(self) -> list[Course]:
         """

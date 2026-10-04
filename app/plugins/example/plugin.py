@@ -1,5 +1,9 @@
 from app.core.models import Assignment, Course
-from app.core.plugins import Plugin, PluginCapabilities, PluginInfo
+from app.core.plugins import (
+    Plugin,
+    PluginCapabilities,
+    PluginInfo,
+)
 
 
 class ExamplePlugin(Plugin):
@@ -9,6 +13,9 @@ class ExamplePlugin(Plugin):
     Simula un proveedor externo sin realizar ninguna
     conexión a Internet.
     """
+
+    def __init__(self) -> None:
+        self._connected = False
 
     @property
     def info(self) -> PluginInfo:
@@ -27,13 +34,19 @@ class ExamplePlugin(Plugin):
         print(f"[{self.info.id}] Plugin inicializado")
 
     def shutdown(self) -> None:
+        self.disconnect()
         print(f"[{self.info.id}] Plugin detenido")
 
     def connect(self) -> None:
+        self._connected = True
         print(f"[{self.info.id}] Conectado")
 
     def disconnect(self) -> None:
+        self._connected = False
         print(f"[{self.info.id}] Desconectado")
+
+    def is_connected(self) -> bool:
+        return self._connected
 
     def get_courses(self) -> list[Course]:
         return [
