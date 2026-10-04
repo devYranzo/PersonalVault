@@ -27,6 +27,13 @@ class Plugin(ABC):
         """
         raise NotImplementedError
 
+    def requires_connection(self) -> bool:
+        """
+        Indica si el plugin necesita autenticación
+        o conexión con un servicio externo.
+        """
+        return False
+    
     def connect(self) -> None:
         """
         Conecta el plugin con su servicio externo.

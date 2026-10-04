@@ -169,23 +169,18 @@ class ConnectionsPage(QWidget):
 
         buttons_layout.addWidget(toggle_button)
 
-        connect_button = QPushButton(
-            "Conectar"
-            if not plugin.is_connected()
-            else "Desconectar"
-        )
-        connect_button.setObjectName("pluginConnectButton")
-        connect_button.setCursor(
-            Qt.CursorShape.PointingHandCursor
-        )
-
-        connect_button.clicked.connect(
-            lambda checked=False, plugin_id=info.id: (
-                self._toggle_connection(plugin_id)
+        if enabled and plugin.requires_connection():
+            connect_button = QPushButton(
+                "Conectar" if not plugin.is_connected() else "Desconectar"
             )
-        )
 
-        buttons_layout.addWidget(connect_button)
+            connect_button.clicked.connect(
+                lambda checked=False, plugin_id=info.id: self._toggle_connection(
+                    plugin_id
+                )
+            )
+
+            buttons_layout.addWidget(connect_button)
 
         buttons_layout.addStretch()
 
