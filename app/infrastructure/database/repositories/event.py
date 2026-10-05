@@ -12,7 +12,10 @@ class EventRepository(
     def __init__(self, session: Session) -> None:
         super().__init__(session)
 
-    def to_domain(self, model: EventModel) -> Event:
+    def to_domain(
+        self,
+        model: EventModel,
+    ) -> Event:
         return Event(
             id=model.id,
             title=model.title,
@@ -30,7 +33,10 @@ class EventRepository(
             updated_at=model.updated_at,
         )
 
-    def to_model(self, domain: Event) -> EventModel:
+    def to_model(
+        self,
+        domain: Event,
+    ) -> EventModel:
         return EventModel(
             id=domain.id,
             title=domain.title,
@@ -48,7 +54,10 @@ class EventRepository(
             updated_at=domain.updated_at,
         )
 
-    def get(self, event_id: str) -> Event | None:
+    def get(
+        self,
+        event_id: str,
+    ) -> Event | None:
         statement = select(EventModel).where(
             EventModel.id == event_id,
         )
@@ -90,13 +99,16 @@ class EventRepository(
         return self.to_domain(model)
 
     def save(self, event: Event) -> Event:
-        existing_model = self.session.get(
-            EventModel,
-            event.id,
+        existing_model = self.session.scalar(
+            select(EventModel).where(
+                EventModel.source == event.source,
+                EventModel.external_id == event.external_id,
+            )
         )
 
         if existing_model is None:
             model = self.to_model(event)
+
             self.session.add(model)
             self.session.flush()
 
@@ -120,7 +132,10 @@ class EventRepository(
 
         return self.to_domain(existing_model)
 
-    def delete_by_id(self, event_id: str) -> bool:
+    def delete_by_id(
+        self,
+        event_id: str,
+    ) -> bool:
         model = self.session.get(
             EventModel,
             event_id,

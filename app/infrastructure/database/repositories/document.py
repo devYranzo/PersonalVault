@@ -12,7 +12,10 @@ class DocumentRepository(
     def __init__(self, session: Session) -> None:
         super().__init__(session)
 
-    def to_domain(self, model: DocumentModel) -> Document:
+    def to_domain(
+        self,
+        model: DocumentModel,
+    ) -> Document:
         return Document(
             id=model.id,
             title=model.title,
@@ -29,7 +32,10 @@ class DocumentRepository(
             updated_at=model.updated_at,
         )
 
-    def to_model(self, domain: Document) -> DocumentModel:
+    def to_model(
+        self,
+        domain: Document,
+    ) -> DocumentModel:
         return DocumentModel(
             id=domain.id,
             title=domain.title,
@@ -46,7 +52,10 @@ class DocumentRepository(
             updated_at=domain.updated_at,
         )
 
-    def get(self, document_id: str) -> Document | None:
+    def get(
+        self,
+        document_id: str,
+    ) -> Document | None:
         statement = select(DocumentModel).where(
             DocumentModel.id == document_id,
         )
@@ -88,13 +97,16 @@ class DocumentRepository(
         return self.to_domain(model)
 
     def save(self, document: Document) -> Document:
-        existing_model = self.session.get(
-            DocumentModel,
-            document.id,
+        existing_model = self.session.scalar(
+            select(DocumentModel).where(
+                DocumentModel.source == document.source,
+                DocumentModel.external_id == document.external_id,
+            )
         )
 
         if existing_model is None:
             model = self.to_model(document)
+
             self.session.add(model)
             self.session.flush()
 
@@ -117,7 +129,10 @@ class DocumentRepository(
 
         return self.to_domain(existing_model)
 
-    def delete_by_id(self, document_id: str) -> bool:
+    def delete_by_id(
+        self,
+        document_id: str,
+    ) -> bool:
         model = self.session.get(
             DocumentModel,
             document_id,

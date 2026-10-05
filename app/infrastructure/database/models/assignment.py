@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, String, Text
+from sqlalchemy import DateTime, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.infrastructure.database.base import Base
@@ -8,6 +8,13 @@ from app.infrastructure.database.base import Base
 
 class AssignmentModel(Base):
     __tablename__ = "assignments"
+
+    __table_args__ = (
+        UniqueConstraint(
+            "source",
+            "external_id",
+        ),
+    )
 
     id: Mapped[str] = mapped_column(
         String(255),

@@ -12,7 +12,10 @@ class AssignmentRepository(
     def __init__(self, session: Session) -> None:
         super().__init__(session)
 
-    def to_domain(self, model: AssignmentModel) -> Assignment:
+    def to_domain(
+        self,
+        model: AssignmentModel,
+    ) -> Assignment:
         return Assignment(
             id=model.id,
             title=model.title,
@@ -28,7 +31,10 @@ class AssignmentRepository(
             updated_at=model.updated_at,
         )
 
-    def to_model(self, domain: Assignment) -> AssignmentModel:
+    def to_model(
+        self,
+        domain: Assignment,
+    ) -> AssignmentModel:
         return AssignmentModel(
             id=domain.id,
             title=domain.title,
@@ -44,7 +50,10 @@ class AssignmentRepository(
             updated_at=domain.updated_at,
         )
 
-    def get(self, assignment_id: str) -> Assignment | None:
+    def get(
+        self,
+        assignment_id: str,
+    ) -> Assignment | None:
         statement = select(AssignmentModel).where(
             AssignmentModel.id == assignment_id,
         )
@@ -63,7 +72,10 @@ class AssignmentRepository(
 
         models = self.session.scalars(statement).all()
 
-        return [self.to_domain(model) for model in models]
+        return [
+            self.to_domain(model)
+            for model in models
+        ]
 
     def get_by_external_id(
         self,
@@ -83,13 +95,16 @@ class AssignmentRepository(
         return self.to_domain(model)
 
     def save(self, assignment: Assignment) -> Assignment:
-        existing_model = self.session.get(
-            AssignmentModel,
-            assignment.id,
+        existing_model = self.session.scalar(
+            select(AssignmentModel).where(
+                AssignmentModel.source == assignment.source,
+                AssignmentModel.external_id == assignment.external_id,
+            )
         )
 
         if existing_model is None:
             model = self.to_model(assignment)
+
             self.session.add(model)
             self.session.flush()
 
@@ -111,7 +126,10 @@ class AssignmentRepository(
 
         return self.to_domain(existing_model)
 
-    def delete_by_id(self, assignment_id: str) -> bool:
+    def delete_by_id(
+        self,
+        assignment_id: str,
+    ) -> bool:
         model = self.session.get(
             AssignmentModel,
             assignment_id,

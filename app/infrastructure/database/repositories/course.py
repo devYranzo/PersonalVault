@@ -80,13 +80,16 @@ class CourseRepository(
         return self.to_domain(model)
 
     def save(self, course: Course) -> Course:
-        existing_model = self.session.get(
-            CourseModel,
-            course.id,
+        existing_model = self.session.scalar(
+            select(CourseModel).where(
+                CourseModel.source == course.source,
+                CourseModel.external_id == course.external_id,
+            )
         )
 
         if existing_model is None:
             model = self.to_model(course)
+
             self.session.add(model)
             self.session.flush()
 
