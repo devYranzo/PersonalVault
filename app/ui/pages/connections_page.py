@@ -15,6 +15,8 @@ from app.core.plugins import (
     PluginManager,
     PluginStatus,
 )
+from app.infrastructure.database.database import SessionLocal
+from app.services import SyncResult, SyncService
 
 
 class ConnectionsPage(QWidget):
@@ -46,11 +48,21 @@ class ConnectionsPage(QWidget):
         root_layout.addWidget(description)
 
         self.plugins_container = QWidget()
-        self.plugins_layout = QVBoxLayout(self.plugins_container)
-        self.plugins_layout.setContentsMargins(0, 10, 0, 0)
+
+        self.plugins_layout = QVBoxLayout(
+            self.plugins_container,
+        )
+        self.plugins_layout.setContentsMargins(
+            0,
+            10,
+            0,
+            0,
+        )
         self.plugins_layout.setSpacing(12)
 
-        root_layout.addWidget(self.plugins_container)
+        root_layout.addWidget(
+            self.plugins_container,
+        )
         root_layout.addStretch()
 
     def refresh_plugins(self) -> None:
@@ -60,14 +72,21 @@ class ConnectionsPage(QWidget):
 
         if not plugins:
             empty_label = QLabel(
-                "No hay plugins disponibles."
+                "No hay plugins disponibles.",
             )
             empty_label.setObjectName("pageDescription")
-            self.plugins_layout.addWidget(empty_label)
+
+            self.plugins_layout.addWidget(
+                empty_label,
+            )
+
             return
 
         for managed_plugin in plugins:
-            card = self._create_plugin_card(managed_plugin)
+            card = self._create_plugin_card(
+                managed_plugin,
+            )
+
             self.plugins_layout.addWidget(card)
 
     def _clear_plugin_cards(self) -> None:
@@ -90,12 +109,19 @@ class ConnectionsPage(QWidget):
 
         card = QFrame()
         card.setObjectName("pluginCard")
-        card.setFrameShape(QFrame.Shape.StyledPanel)
+        card.setFrameShape(
+            QFrame.Shape.StyledPanel,
+        )
 
         self.plugin_cards[info.id] = card
 
         root_layout = QVBoxLayout(card)
-        root_layout.setContentsMargins(20, 18, 20, 18)
+        root_layout.setContentsMargins(
+            20,
+            18,
+            20,
+            18,
+        )
         root_layout.setSpacing(10)
 
         header_layout = QHBoxLayout()
@@ -107,8 +133,12 @@ class ConnectionsPage(QWidget):
         name_label = QLabel(info.name)
         name_label.setObjectName("pluginName")
 
-        version_label = QLabel(f"Versión {info.version}")
-        version_label.setObjectName("pluginVersion")
+        version_label = QLabel(
+            f"Versión {info.version}",
+        )
+        version_label.setObjectName(
+            "pluginVersion",
+        )
 
         name_layout.addWidget(name_label)
         name_layout.addWidget(version_label)
@@ -116,49 +146,69 @@ class ConnectionsPage(QWidget):
         header_layout.addLayout(name_layout)
         header_layout.addStretch()
 
-        status_label = self._create_status_label(managed_plugin)
+        status_label = self._create_status_label(
+            managed_plugin,
+        )
         header_layout.addWidget(status_label)
 
         root_layout.addLayout(header_layout)
 
-        description_label = QLabel(info.description)
-        description_label.setObjectName("pluginDescription")
+        description_label = QLabel(
+            info.description,
+        )
+        description_label.setObjectName(
+            "pluginDescription",
+        )
         description_label.setWordWrap(True)
 
-        root_layout.addWidget(description_label)
+        root_layout.addWidget(
+            description_label,
+        )
 
         capabilities_text = self._format_capabilities(
-            info.capabilities
+            info.capabilities,
         )
 
         capabilities_label = QLabel(
-            f"Capacidades: {capabilities_text}"
+            f"Capacidades: {capabilities_text}",
         )
-        capabilities_label.setObjectName("pluginCapabilities")
+        capabilities_label.setObjectName(
+            "pluginCapabilities",
+        )
         capabilities_label.setWordWrap(True)
 
-        root_layout.addWidget(capabilities_label)
+        root_layout.addWidget(
+            capabilities_label,
+        )
 
         if managed_plugin.error:
             error_label = QLabel(
-                f"Error: {managed_plugin.error}"
+                f"Error: {managed_plugin.error}",
             )
-            error_label.setObjectName("pluginError")
+            error_label.setObjectName(
+                "pluginError",
+            )
             error_label.setWordWrap(True)
 
-            root_layout.addWidget(error_label)
+            root_layout.addWidget(
+                error_label,
+            )
 
         buttons_layout = QHBoxLayout()
         buttons_layout.setSpacing(8)
 
-        enabled = self.plugin_manager.is_enabled(info.id)
+        enabled = self.plugin_manager.is_enabled(
+            info.id,
+        )
 
         toggle_button = QPushButton(
-            "Desactivar" if enabled else "Activar"
+            "Desactivar" if enabled else "Activar",
         )
-        toggle_button.setObjectName("pluginActionButton")
+        toggle_button.setObjectName(
+            "pluginActionButton",
+        )
         toggle_button.setCursor(
-            Qt.CursorShape.PointingHandCursor
+            Qt.CursorShape.PointingHandCursor,
         )
 
         toggle_button.clicked.connect(
@@ -167,24 +217,58 @@ class ConnectionsPage(QWidget):
             )
         )
 
-        buttons_layout.addWidget(toggle_button)
+        buttons_layout.addWidget(
+            toggle_button,
+        )
 
-        if enabled and plugin.requires_connection():
-            connect_button = QPushButton(
-                "Conectar" if not plugin.is_connected() else "Desconectar"
+        connect_button = QPushButton(
+            "Conectar"
+            if not plugin.is_connected()
+            else "Desconectar",
+        )
+        connect_button.setObjectName(
+            "pluginConnectButton",
+        )
+        connect_button.setCursor(
+            Qt.CursorShape.PointingHandCursor,
+        )
+
+        connect_button.clicked.connect(
+            lambda checked=False, plugin_id=info.id: (
+                self._toggle_connection(plugin_id)
+            )
+        )
+
+        buttons_layout.addWidget(
+            connect_button,
+        )
+
+        if enabled:
+            sync_button = QPushButton(
+                "Sincronizar",
+            )
+            sync_button.setObjectName(
+                "pluginSyncButton",
+            )
+            sync_button.setCursor(
+                Qt.CursorShape.PointingHandCursor,
             )
 
-            connect_button.clicked.connect(
-                lambda checked=False, plugin_id=info.id: self._toggle_connection(
-                    plugin_id
+            sync_button.clicked.connect(
+                lambda checked=False, plugin_id=info.id: (
+                    self._sync_plugin(plugin_id)
                 )
             )
 
-            buttons_layout.addWidget(connect_button)
+            buttons_layout.addWidget(
+                sync_button,
+            )
 
         buttons_layout.addStretch()
 
-        root_layout.addLayout(buttons_layout)
+        root_layout.addLayout(
+            buttons_layout,
+        )
 
         card.setSizePolicy(
             QSizePolicy.Policy.Expanding,
@@ -208,11 +292,16 @@ class ConnectionsPage(QWidget):
         )
 
         label = QLabel(status_text)
-        label.setObjectName("pluginStatus")
+        label.setObjectName(
+            "pluginStatus",
+        )
 
         return label
 
-    def _format_capabilities(self, capabilities) -> str:
+    def _format_capabilities(
+        self,
+        capabilities,
+    ) -> str:
         labels = {
             "courses": "Cursos",
             "assignments": "Tareas",
@@ -233,10 +322,17 @@ class ConnectionsPage(QWidget):
 
         return ", ".join(formatted)
 
-    def _toggle_plugin(self, plugin_id: str) -> None:
-        if self.plugin_manager.is_enabled(plugin_id):
+    def _toggle_plugin(
+        self,
+        plugin_id: str,
+    ) -> None:
+        if self.plugin_manager.is_enabled(
+            plugin_id,
+        ):
             try:
-                self.plugin_manager.disable(plugin_id)
+                self.plugin_manager.disable(
+                    plugin_id,
+                )
             except Exception as exc:
                 self._show_error(
                     "No se pudo desactivar el plugin.",
@@ -245,7 +341,9 @@ class ConnectionsPage(QWidget):
                 return
         else:
             try:
-                self.plugin_manager.enable(plugin_id)
+                self.plugin_manager.enable(
+                    plugin_id,
+                )
             except Exception as exc:
                 self._show_error(
                     "No se pudo activar el plugin.",
@@ -255,19 +353,24 @@ class ConnectionsPage(QWidget):
 
         self.refresh_plugins()
 
-    def _toggle_connection(self, plugin_id: str) -> None:
-        managed_plugin = self.plugin_manager.get_plugin(plugin_id)
+    def _toggle_connection(
+        self,
+        plugin_id: str,
+    ) -> None:
+        plugin = self.plugin_manager.get_plugin(
+            plugin_id,
+        )
 
-        if managed_plugin is None:
+        if plugin is None:
             return
-
-        plugin = managed_plugin.plugin
 
         try:
             if plugin.is_connected():
                 plugin.disconnect()
             else:
-                if not self.plugin_manager.is_enabled(plugin_id):
+                if not self.plugin_manager.is_enabled(
+                    plugin_id,
+                ):
                     self._show_error(
                         "Plugin no activo",
                         "Activa el plugin antes de conectarlo.",
@@ -284,6 +387,66 @@ class ConnectionsPage(QWidget):
             return
 
         self.refresh_plugins()
+
+    def _sync_plugin(
+        self,
+        plugin_id: str,
+    ) -> None:
+        plugin = self.plugin_manager.get_plugin(
+            plugin_id,
+        )
+
+        if plugin is None:
+            return
+
+        if not self.plugin_manager.is_enabled(
+            plugin_id,
+        ):
+            self._show_error(
+                "Plugin no activo",
+                "Activa el plugin antes de sincronizarlo.",
+            )
+            return
+
+        try:
+            with SessionLocal() as session:
+                service = SyncService(
+                    session=session,
+                    plugin=plugin,
+                )
+
+                result = service.sync()
+
+        except Exception as exc:
+            self._show_error(
+                "No se pudo sincronizar el plugin.",
+                str(exc),
+            )
+            return
+
+        self._show_sync_result(
+            plugin.info.name,
+            result,
+        )
+
+    def _show_sync_result(
+        self,
+        plugin_name: str,
+        result: SyncResult,
+    ) -> None:
+        QMessageBox.information(
+            self,
+            "Sincronización completada",
+            (
+                f"La sincronización de {plugin_name} "
+                "ha terminado correctamente.\n\n"
+                f"Cursos: {result.courses}\n"
+                f"Tareas: {result.assignments}\n"
+                f"Eventos: {result.events}\n"
+                f"Documentos: {result.documents}\n\n"
+                f"Total: {result.total}"
+            ),
+        )
 
     def _show_error(
         self,
