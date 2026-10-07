@@ -24,7 +24,7 @@ CARD_WIDTH = 420
 # capability.value -> (icono, etiqueta)
 CAPABILITIES = {
     "courses": ("school", "Cursos"),
-    "assignments": ("assignment", "Tareas"),
+    "assignments": ("tasks", "Tareas"),
     "events": ("event", "Eventos"),
     "documents": ("description", "Documentos"),
 }
@@ -74,7 +74,7 @@ class ConnectionsPage(QWidget):
 
         # Rejilla dinámica: tarjetas de ancho fijo que saltan de fila
         self.plugins_container = QWidget()
-        self.plugins_container.setObjectName("pluginsContainer")
+        self.plugins_container.setObjectName("pageContainer")
 
         self.plugins_layout = FlowLayout(
             self.plugins_container,
@@ -84,7 +84,7 @@ class ConnectionsPage(QWidget):
         self.plugins_layout.setContentsMargins(0, 0, 8, 8)
 
         self.scroll = FlowScrollArea()
-        self.scroll.setObjectName("pluginsScroll")
+        self.scroll.setObjectName("pageScroll")
         self.scroll.setWidget(self.plugins_container)
 
         root_layout.addWidget(self.scroll, 1)

@@ -162,16 +162,16 @@ QPushButton[variant="danger"]:disabled {
    CONEXIONES
    ============================================================ */
 
-QScrollArea#pluginsScroll {
+QScrollArea#pageScroll {
     background: transparent;
     border: none;
 }
 
-QScrollArea#pluginsScroll > QWidget > QWidget {
+QScrollArea#pageScroll > QWidget > QWidget {
     background: transparent;
 }
 
-QWidget#pluginsContainer {
+QWidget#pageContainer {
     background: transparent;
 }
 
@@ -285,5 +285,56 @@ QFrame#pluginError {
 
 QLabel#pluginErrorText {
     color: #b42318;
+    font-size: 13px;
+}
+
+/* ============================================================
+   DASHBOARD
+   ============================================================ */
+
+QLabel#sectionTitle {
+    color: #1f2329;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+QFrame#statCard {
+    background: white;
+    border: 1px solid #e3e5e9;
+    border-radius: 10px;
+}
+
+QFrame#statCard:hover {
+    border-color: #c4c9d0;
+}
+
+QLabel#statIcon {
+    background: #eef0f3;
+    border-radius: 8px;
+}
+
+QLabel#statNumber {
+    color: #1f2329;
+    font-size: 30px;
+    font-weight: 700;
+}
+
+QLabel#statLabel {
+    color: #4b5563;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+QLabel#statHint {
+    color: #8a919c;
+    font-size: 12px;
+}
+
+QLabel#dashboardError {
+    color: #b42318;
+    background: #fdf3f2;
+    border: 1px solid #f0cfcb;
+    border-radius: 6px;
+    padding: 10px 14px;
     font-size: 13px;
 }
