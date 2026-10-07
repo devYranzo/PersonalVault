@@ -5,6 +5,7 @@ QMainWindow {
 QWidget {
     font-family: "Segoe UI", sans-serif;
     font-size: 14px;
+    color: #1f2329;
 }
 
 QFrame#sidebar {
@@ -57,4 +58,95 @@ QLabel#pageDescription {
     color: #69717d;
     font-size: 15px;
     max-width: 700px;
+}
+
+QLabel#dashboardStats {
+    color: #1f2329;
+    background: white;
+    border: 1px solid #e1e4e8;
+    border-radius: 10px;
+    padding: 18px;
+    font-size: 15px;
+}
+
+QLabel#taskItem {
+    color: #1f2329;
+    background: white;
+    border: 1px solid #e1e4e8;
+    border-radius: 10px;
+    padding: 14px;
+}
+
+QLabel#documentItem {
+    color: #1f2329;
+    background: white;
+    border: 1px solid #e1e4e8;
+    border-radius: 10px;
+    padding: 14px;
+}
+
+QFrame#pluginCard {
+    background: #e5e7eb;
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+}
+
+QLabel#pluginName {
+    color: #1f2329;
+    font-size: 17px;
+    font-weight: 700;
+}
+
+QLabel#pluginVersion {
+    color: #69717d;
+    font-size: 12px;
+}
+
+QLabel#pluginDescription {
+    color: #374151;
+    font-size: 14px;
+}
+
+QLabel#pluginCapabilities {
+    color: #4b5563;
+    font-size: 13px;
+}
+
+QLabel#pluginStatus {
+    color: #1f2329;
+    background: #d1d5db;
+    border-radius: 6px;
+    padding: 5px 9px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+QLabel#pluginError {
+    color: #b91c1c;
+    background: #fee2e2;
+    border-radius: 6px;
+    padding: 8px;
+}
+
+QPushButton#pluginActionButton,
+QPushButton#pluginConnectButton,
+QPushButton#pluginSyncButton {
+    background: #ffffff;
+    color: #1f2329;
+    border: 1px solid #c7cbd1;
+    border-radius: 7px;
+    padding: 7px 12px;
+}
+
+QPushButton#pluginActionButton:hover,
+QPushButton#pluginConnectButton:hover,
+QPushButton#pluginSyncButton:hover {
+    background: #f3f4f6;
+    border-color: #9ca3af;
+}
+
+QPushButton#pluginActionButton:pressed,
+QPushButton#pluginConnectButton:pressed,
+QPushButton#pluginSyncButton:pressed {
+    background: #e5e7eb;
 }
