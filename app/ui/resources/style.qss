@@ -85,68 +85,205 @@ QLabel#documentItem {
     padding: 14px;
 }
 
-QFrame#pluginCard {
+/* ============================================================
+   BOTONES (genéricos)
+   Cualquier QPushButton con la propiedad "variant" toma este estilo.
+   Variantes: primary | secondary | danger
+   El icono de IconButton se tiñe con el "color" definido aquí.
+   ============================================================ */
+
+QPushButton[variant] {
+    background: #ffffff;
+    color: #1f2329;
+    border: 1px solid #d5d9df;
+    border-radius: 6px;
+    padding: 7px 14px;
+    font-weight: 500;
+}
+
+QPushButton[variant]:hover {
+    background: #f3f4f6;
+    border-color: #b8bec7;
+}
+
+QPushButton[variant]:pressed {
+    background: #e8eaed;
+}
+
+QPushButton[variant]:disabled {
+    background: #f3f4f6;
+    color: #b0b6bf;
+    border-color: #e5e7eb;
+}
+
+QPushButton[variant="primary"] {
+    background: #1f2329;
+    color: #ffffff;
+    border-color: #1f2329;
+}
+
+QPushButton[variant="primary"]:hover {
+    background: #343b45;
+    border-color: #343b45;
+}
+
+QPushButton[variant="primary"]:pressed {
+    background: #14171b;
+}
+
+QPushButton[variant="primary"]:disabled {
     background: #e5e7eb;
-    border: 1px solid #d1d5db;
+    color: #9ca3af;
+    border-color: #e5e7eb;
+}
+
+QPushButton[variant="danger"] {
+    background: #ffffff;
+    color: #b42318;
+    border-color: #e5c4c0;
+}
+
+QPushButton[variant="danger"]:hover {
+    background: #fdf3f2;
+    border-color: #d99a94;
+}
+
+QPushButton[variant="danger"]:pressed {
+    background: #fbe4e1;
+}
+
+QPushButton[variant="danger"]:disabled {
+    background: #f3f4f6;
+    color: #c9a5a1;
+    border-color: #e5e7eb;
+}
+
+/* ============================================================
+   CONEXIONES
+   ============================================================ */
+
+QScrollArea#pluginsScroll {
+    background: transparent;
+    border: none;
+}
+
+QScrollArea#pluginsScroll > QWidget > QWidget {
+    background: transparent;
+}
+
+QWidget#pluginsContainer {
+    background: transparent;
+}
+
+QScrollBar:vertical {
+    background: transparent;
+    width: 10px;
+    margin: 2px;
+}
+
+QScrollBar::handle:vertical {
+    background: #cdd1d7;
+    border-radius: 4px;
+    min-height: 30px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background: #9ca3af;
+}
+
+QScrollBar::add-line:vertical,
+QScrollBar::sub-line:vertical,
+QScrollBar::add-page:vertical,
+QScrollBar::sub-page:vertical {
+    background: transparent;
+    height: 0;
+}
+
+QLabel#pageSummary {
+    color: #8a919c;
+    font-size: 13px;
+}
+
+/* --- Estado vacío ------------------------------------------ */
+QFrame#emptyState {
+    background: transparent;
+    border: 1px dashed #c7cbd1;
     border-radius: 10px;
+}
+
+QLabel#emptyTitle {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+QLabel#emptyHint {
+    color: #8a919c;
+    font-size: 13px;
+}
+
+/* --- Tarjeta de plugin ------------------------------------- */
+QFrame#pluginCard {
+    background: white;
+    border: 1px solid #e3e5e9;
+    border-radius: 10px;
+}
+
+QFrame#pluginCard:hover {
+    border-color: #c4c9d0;
+}
+
+QLabel#pluginAvatar {
+    background: #eef0f3;
+    color: #3a414c;
+    border-radius: 8px;
+    font-size: 17px;
+    font-weight: 600;
 }
 
 QLabel#pluginName {
     color: #1f2329;
-    font-size: 17px;
-    font-weight: 700;
+    font-size: 16px;
+    font-weight: 600;
 }
 
 QLabel#pluginVersion {
-    color: #69717d;
+    color: #8a919c;
     font-size: 12px;
 }
 
 QLabel#pluginDescription {
-    color: #374151;
-    font-size: 14px;
-}
-
-QLabel#pluginCapabilities {
     color: #4b5563;
     font-size: 13px;
 }
 
-QLabel#pluginStatus {
-    color: #1f2329;
-    background: #d1d5db;
-    border-radius: 6px;
-    padding: 5px 9px;
+QLabel#capabilityText {
+    color: #6b7380;
     font-size: 12px;
-    font-weight: 600;
 }
 
-QLabel#pluginError {
-    color: #b91c1c;
-    background: #fee2e2;
+/* Estado: punto + texto */
+QLabel#statusDot {
+    background: #b8bec7;
+    border-radius: 4px;
+}
+
+QLabel#statusDot[state="enabled"]    { background: #22a559; }
+QLabel#statusDot[state="error"]      { background: #d92d20; }
+QLabel#statusDot[state="discovered"] { background: #e0a100; }
+QLabel#statusDot[state="disabled"]   { background: #b8bec7; }
+
+QLabel#pluginStatus {
+    color: #6b7380;
+    font-size: 12px;
+}
+
+QFrame#pluginError {
+    background: #fdf3f2;
+    border: 1px solid #f0cfcb;
     border-radius: 6px;
-    padding: 8px;
 }
 
-QPushButton#pluginActionButton,
-QPushButton#pluginConnectButton,
-QPushButton#pluginSyncButton {
-    background: #ffffff;
-    color: #1f2329;
-    border: 1px solid #c7cbd1;
-    border-radius: 7px;
-    padding: 7px 12px;
-}
-
-QPushButton#pluginActionButton:hover,
-QPushButton#pluginConnectButton:hover,
-QPushButton#pluginSyncButton:hover {
-    background: #f3f4f6;
-    border-color: #9ca3af;
-}
-
-QPushButton#pluginActionButton:pressed,
-QPushButton#pluginConnectButton:pressed,
-QPushButton#pluginSyncButton:pressed {
-    background: #e5e7eb;
+QLabel#pluginErrorText {
+    color: #b42318;
+    font-size: 13px;
 }
