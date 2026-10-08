@@ -8,8 +8,8 @@ from PySide6.QtGui import QColor, QGuiApplication, QIcon, QPainter, QPalette, QP
 from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import QPushButton
 
-# Ajusta esta ruta a donde copies la carpeta assets/icons
-ICONS_DIR = Path(__file__).resolve().parent / "icons"
+# icons.py vive en app/ui/ -> iconos en app/resources/icons
+ICONS_DIR = Path(__file__).resolve().parents[1] / "resources" / "icons"  # app/resources/icons
 
 
 @lru_cache(maxsize=256)

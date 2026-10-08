@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
 from app.core.plugin_system import create_plugin_manager
 from app.core.plugins import PluginManager
 from app.ui.pages.ai_page import AIPage
+from app.ui.pages.calendar_page import CalendarPage
 from app.ui.pages.connections_page import ConnectionsPage
 from app.ui.pages.dashboard_page import DashboardPage
 from app.ui.pages.documents_page import DocumentsPage
@@ -73,9 +74,11 @@ class MainWindow(QMainWindow):
             plugin_manager=self.plugin_manager,
         )
 
+        # El orden debe coincidir con `navigation` en _create_sidebar
         self.pages = [
             DashboardPage(),
             TasksPage(),
+            CalendarPage(),
             DocumentsPage(),
             KnowledgePage(),
             AIPage(),
@@ -113,6 +116,7 @@ class MainWindow(QMainWindow):
         navigation = [
             ("home.svg", "Dashboard"),
             ("tasks.svg", "Tareas"),
+            ("calendar.svg", "Calendario"),
             ("documents.svg", "Documentos"),
             ("knowledge.svg", "Knowledge"),
             ("ai.svg", "AI"),
