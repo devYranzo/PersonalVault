@@ -52,9 +52,6 @@ class DashboardPage(QWidget):
         description.setObjectName("pageDescription")
         description.setWordWrap(True)
 
-        section = QLabel("Resumen del Vault")
-        section.setObjectName("sectionTitle")
-
         self.error_label = QLabel(
             "No se han podido cargar las estadísticas del Vault."
         )
@@ -64,8 +61,7 @@ class DashboardPage(QWidget):
 
         root_layout.addWidget(self.title)
         root_layout.addWidget(description)
-        root_layout.addSpacing(20)
-        root_layout.addWidget(section)
+        root_layout.addSpacing(10)
         root_layout.addSpacing(4)
         root_layout.addWidget(self.error_label)
 

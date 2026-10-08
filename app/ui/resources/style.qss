@@ -338,3 +338,199 @@ QLabel#dashboardError {
     padding: 10px 14px;
     font-size: 13px;
 }
+
+/* ============================================================
+   FILTROS SEGMENTADOS (genérico: QPushButton con variant="segment",
+   checkable). Va después de los botones genéricos para ganar prioridad.
+   ============================================================ */
+
+QPushButton[variant="segment"] {
+    background: transparent;
+    color: #6b7380;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-weight: 500;
+}
+
+QPushButton[variant="segment"]:hover {
+    background: #eceef1;
+    color: #1f2329;
+    border-color: transparent;
+}
+
+QPushButton[variant="segment"]:pressed {
+    background: #e3e5e9;
+}
+
+QPushButton[variant="segment"]:checked {
+    background: white;
+    color: #1f2329;
+    border-color: #d5d9df;
+}
+
+QPushButton[variant="segment"]:checked:hover {
+    background: white;
+    border-color: #b8bec7;
+}
+
+/* ============================================================
+   TAREAS
+   ============================================================ */
+
+QFrame#taskRow {
+    background: white;
+    border: 1px solid #e3e5e9;
+    border-radius: 10px;
+}
+
+QFrame#taskRow:hover {
+    border-color: #c4c9d0;
+}
+
+QLabel#taskTitle {
+    color: #1f2329;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+QLabel#taskTitle[state="completed"] {
+    color: #8a919c;
+}
+
+QLabel#taskMeta {
+    color: #6b7380;
+    font-size: 12px;
+}
+
+QLabel#taskMeta[state="overdue"] {
+    color: #b42318;
+    font-weight: 600;
+}
+
+QLabel#taskDescription {
+    color: #4b5563;
+    font-size: 13px;
+}
+
+QLabel#taskStatus {
+    font-size: 12px;
+    font-weight: 600;
+    color: #6b7380;
+}
+
+QLabel#taskStatus[state="in_progress"] { color: #a16207; }
+QLabel#taskStatus[state="completed"]   { color: #1a8a4a; }
+QLabel#taskStatus[state="overdue"]     { color: #b42318; }
+
+/* ============================================================
+   CALENDARIO
+   ============================================================ */
+
+QLabel#calendarMonth {
+    color: #1f2329;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+QLabel#calendarWeekday {
+    color: #8a919c;
+    font-size: 12px;
+    font-weight: 600;
+    padding-bottom: 2px;
+}
+
+QFrame#dayCell {
+    background: white;
+    border: 1px solid #e3e5e9;
+    border-radius: 8px;
+}
+
+QFrame#dayCell:hover {
+    border-color: #b8bec7;
+}
+
+QFrame#dayCell[outside="true"] {
+    background: transparent;
+    border-color: #eceef1;
+}
+
+QFrame#dayCell[selected="true"] {
+    border-color: #1f2329;
+}
+
+QLabel#dayNumber {
+    color: #374151;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+QLabel#dayNumber[outside="true"] {
+    color: #b0b6bf;
+}
+
+QLabel#dayNumber[today="true"] {
+    background: #1f2329;
+    color: white;
+    border-radius: 11px;
+    font-weight: 600;
+}
+
+QLabel#calendarDot {
+    border-radius: 3px;
+    background: #3a414c;
+}
+
+QLabel#calendarDot[kind="done"]    { background: #b8bec7; }
+QLabel#calendarDot[kind="overdue"] { background: #d92d20; }
+QLabel#calendarDot[kind="event"]   { background: #0e8a9a; }
+
+QLabel#calendarMore {
+    color: #8a919c;
+    font-size: 11px;
+}
+
+QLabel#calendarLegend {
+    color: #8a919c;
+    font-size: 12px;
+}
+
+/* Panel del día */
+QFrame#calendarPanel {
+    background: white;
+    border: 1px solid #e3e5e9;
+    border-radius: 10px;
+}
+
+QLabel#panelTitle {
+    color: #1f2329;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+QLabel#panelSubtitle {
+    color: #8a919c;
+    font-size: 12px;
+}
+
+QFrame#calendarItem {
+    background: #f7f8fa;
+    border: 1px solid #eceef1;
+    border-radius: 8px;
+}
+
+QLabel#calendarItemTitle {
+    color: #1f2329;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+QLabel#calendarItemMeta {
+    color: #6b7380;
+    font-size: 12px;
+}
+
+/* Botones solo-icono (cualquier variante): sin padding horizontal */
+QPushButton[variant][iconOnly="true"] {
+    padding: 0;
+}
