@@ -423,6 +423,52 @@ QLabel#taskStatus[state="in_progress"] { color: #a16207; }
 QLabel#taskStatus[state="completed"]   { color: #1a8a4a; }
 QLabel#taskStatus[state="overdue"]     { color: #b42318; }
 
+/* Insignia de origen */
+QLabel#taskBadge {
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 4px;
+    padding: 1px 8px;
+}
+
+QLabel#taskBadge[origin="local"] {
+    background: #e6f4ea;
+    color: #1a8a4a;
+}
+
+QLabel#taskBadge[origin="external"] {
+    background: #e8f0fe;
+    color: #1d4ed8;
+}
+
+/* Diálogo de tarea */
+QDialog {
+    background: #f5f6f8;
+}
+
+QLineEdit,
+QPlainTextEdit,
+QDateTimeEdit,
+QComboBox {
+    background: white;
+    border: 1px solid #d5d9df;
+    border-radius: 6px;
+    padding: 6px 8px;
+}
+
+QLineEdit:focus,
+QPlainTextEdit:focus,
+QDateTimeEdit:focus,
+QComboBox:focus {
+    border-color: #1f2329;
+}
+
+QLineEdit:disabled,
+QDateTimeEdit:disabled {
+    background: #f3f4f6;
+    color: #b0b6bf;
+}
+
 /* ============================================================
    CALENDARIO
    ============================================================ */

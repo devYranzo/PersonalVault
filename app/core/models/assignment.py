@@ -3,6 +3,10 @@ from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
+# Valor reservado de `source` para las tareas creadas por el usuario en
+# Personal Vault. Ningún plugin debe usar este identificador.
+LOCAL_SOURCE = "local"
+
 
 class AssignmentStatus(StrEnum):
     PENDING = "pending"
@@ -36,3 +40,8 @@ class Assignment(BaseModel):
 
     created_at: datetime | None = None
     updated_at: datetime | None = None
+
+    @property
+    def is_local(self) -> bool:
+        """Las tareas locales se pueden editar y borrar; las externas no."""
+        return self.source == LOCAL_SOURCE

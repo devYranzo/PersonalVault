@@ -1,10 +1,14 @@
+from collections.abc import Callable
+
 from PySide6.QtCore import Qt, QUrl
 from PySide6.QtGui import QDesktopServices, QFont
 from PySide6.QtWidgets import (
     QButtonGroup,
+    QDialog,
     QFrame,
     QHBoxLayout,
     QLabel,
+    QMessageBox,
     QPushButton,
     QScrollArea,
     QSizePolicy,
@@ -12,9 +16,11 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app.core.models import Assignment, AssignmentStatus
 from app.infrastructure.database.database import SessionLocal
-from app.infrastructure.database.repositories import AssignmentRepository
-from app.ui.resources.icons import IconButton, svg_pixmap  # ajusta la ruta
+from app.services import TaskService
+from app.ui.dialogs.task_dialog import TaskDialog
+from app.ui.resources.icons import IconButton, svg_pixmap
 
 LIST_MAX_WIDTH = 920
 DESCRIPTION_MAX_CHARS = 180
@@ -31,7 +37,14 @@ FILTERS = {
     "all": "Todas",
     "pending": "Pendientes",
     "completed": "Completadas",
+    "local": "Locales",
+    "external": "Externas",
 }
+
+EXTERNAL_TOOLTIP = (
+    "Tarea externa: solo lectura. Se completará cuando la complete "
+    "el servicio externo."
+)
 
 
 class TasksPage(QWidget):
@@ -39,7 +52,7 @@ class TasksPage(QWidget):
         super().__init__()
 
         self._filter = "all"
-        self._tasks: list = []
+        self._tasks: list[Assignment] = []
         self._load_failed = False
         self.filter_buttons: dict[str, QPushButton] = {}
 
@@ -53,16 +66,27 @@ class TasksPage(QWidget):
         root_layout.setContentsMargins(40, 40, 40, 30)
         root_layout.setSpacing(8)
 
+        # Cabecera: título + botón de nueva tarea
+        header = QHBoxLayout()
+
         title = QLabel("Tareas")
         title.setObjectName("pageTitle")
 
+        new_button = IconButton("Nueva tarea", "add", variant="primary")
+        new_button.clicked.connect(self._create_task)
+
+        header.addWidget(title)
+        header.addStretch()
+        header.addWidget(new_button, 0, Qt.AlignmentFlag.AlignVCenter)
+
         description = QLabel(
-            "Aquí aparecerán tus tareas de Google Classroom, Moodle y otras fuentes."
+            "Crea tus propias tareas y consulta las de Google Classroom, "
+            "Moodle y otras fuentes. Las externas son de solo lectura."
         )
         description.setObjectName("pageDescription")
         description.setWordWrap(True)
 
-        root_layout.addWidget(title)
+        root_layout.addLayout(header)
         root_layout.addWidget(description)
         root_layout.addSpacing(12)
 
@@ -119,7 +143,7 @@ class TasksPage(QWidget):
         """Carga las tareas actuales desde SQLite."""
         try:
             with SessionLocal() as session:
-                self._tasks = list(AssignmentRepository(session).get_all())
+                self._tasks = TaskService(session).list_tasks()
             self._load_failed = False
         except Exception:
             self._tasks = []
@@ -128,20 +152,109 @@ class TasksPage(QWidget):
         self._render()
 
     @staticmethod
-    def _sort_key(task):
+    def _sort_key(task: Assignment):
         completed = task.status.value == "completed"
         due = task.due_date
         return (completed, due is None, due.timestamp() if due else 0)
 
-    def _visible_tasks(self) -> list:
+    def _visible_tasks(self) -> list[Assignment]:
         if self._filter == "pending":
             tasks = [t for t in self._tasks if t.status.value != "completed"]
         elif self._filter == "completed":
             tasks = [t for t in self._tasks if t.status.value == "completed"]
+        elif self._filter == "local":
+            tasks = [t for t in self._tasks if t.is_local]
+        elif self._filter == "external":
+            tasks = [t for t in self._tasks if not t.is_local]
         else:
             tasks = list(self._tasks)
 
         return sorted(tasks, key=self._sort_key)
+
+    # ------------------------------------------------------------- acciones
+
+    def _run(
+        self,
+        operation: Callable[[TaskService], object],
+        error_title: str,
+    ) -> bool:
+        """Ejecuta una operación del servicio y refresca la lista."""
+        try:
+            with SessionLocal() as session:
+                operation(TaskService(session))
+        except Exception as exc:
+            QMessageBox.critical(self, error_title, str(exc))
+            return False
+
+        self._refresh_tasks()
+        return True
+
+    def _create_task(self) -> None:
+        dialog = TaskDialog(self)
+
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        data = dialog.get_data()
+
+        self._run(
+            lambda service: service.create(
+                title=data.title,
+                description=data.description,
+                course_name=data.course_name,
+                due_date=data.due_date,
+                status=data.status,
+            ),
+            "No se pudo crear la tarea.",
+        )
+
+    def _edit_task(self, task: Assignment) -> None:
+        dialog = TaskDialog(self, task=task)
+
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        data = dialog.get_data()
+
+        self._run(
+            lambda service: service.update(
+                task.id,
+                title=data.title,
+                description=data.description,
+                course_name=data.course_name,
+                due_date=data.due_date,
+                status=data.status,
+            ),
+            "No se pudo guardar la tarea.",
+        )
+
+    def _toggle_task(self, task: Assignment) -> None:
+        if task.status == AssignmentStatus.COMPLETED:
+            new_status = AssignmentStatus.PENDING
+        else:
+            new_status = AssignmentStatus.COMPLETED
+
+        self._run(
+            lambda service: service.set_status(task.id, new_status),
+            "No se pudo cambiar el estado de la tarea.",
+        )
+
+    def _delete_task(self, task: Assignment) -> None:
+        answer = QMessageBox.question(
+            self,
+            "Eliminar tarea",
+            f"¿Eliminar la tarea «{task.title}»?\n\nEsta acción no se puede deshacer.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+
+        self._run(
+            lambda service: service.delete(task.id),
+            "No se pudo eliminar la tarea.",
+        )
 
     # --------------------------------------------------------------- render
 
@@ -178,11 +291,14 @@ class TasksPage(QWidget):
     def _update_filter_counts(self) -> None:
         total = len(self._tasks)
         completed = sum(1 for t in self._tasks if t.status.value == "completed")
+        local = sum(1 for t in self._tasks if t.is_local)
 
         counts = {
             "all": total,
             "pending": total - completed,
             "completed": completed,
+            "local": local,
+            "external": total - local,
         }
 
         for key, button in self.filter_buttons.items():
@@ -201,8 +317,11 @@ class TasksPage(QWidget):
         icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         if not self._tasks:
-            title_text = "No hay tareas sincronizadas todavía"
-            hint_text = "Conecta un plugin en Conexiones y sincroniza para verlas aquí."
+            title_text = "Todavía no tienes tareas"
+            hint_text = (
+                "Crea una con «Nueva tarea» o conecta un plugin en "
+                "Conexiones y sincroniza."
+            )
         else:
             title_text = "No hay tareas en esta vista"
             hint_text = "Prueba con otro filtro."
@@ -222,7 +341,7 @@ class TasksPage(QWidget):
 
         return frame
 
-    def _create_task_row(self, task) -> QFrame:
+    def _create_task_row(self, task: Assignment) -> QFrame:
         """Crea la representación visual de una tarea."""
         status = task.status.value
         status_text, status_icon, status_color = STATUS_INFO.get(
@@ -248,6 +367,9 @@ class TasksPage(QWidget):
         content = QVBoxLayout()
         content.setSpacing(4)
 
+        title_row = QHBoxLayout()
+        title_row.setSpacing(10)
+
         title = QLabel(task.title)
         title.setObjectName("taskTitle")
         title.setProperty("state", status)
@@ -259,7 +381,14 @@ class TasksPage(QWidget):
             font.setStrikeOut(True)
             title.setFont(font)
 
-        content.addWidget(title)
+        title_row.addWidget(title, 1)
+        title_row.addWidget(
+            self._create_origin_badge(task),
+            0,
+            Qt.AlignmentFlag.AlignTop,
+        )
+
+        content.addLayout(title_row)
 
         meta = QHBoxLayout()
         meta.setSpacing(16)
@@ -295,7 +424,7 @@ class TasksPage(QWidget):
         content.addStretch(1)
         layout.addLayout(content, 1)
 
-        # Estado + acción
+        # Estado + acciones
         side = QVBoxLayout()
         side.setSpacing(8)
         side.setAlignment(Qt.AlignmentFlag.AlignTop)
@@ -305,6 +434,9 @@ class TasksPage(QWidget):
         status_label.setProperty("state", status)
         status_label.setAlignment(Qt.AlignmentFlag.AlignRight)
         side.addWidget(status_label)
+
+        if task.is_local:
+            side.addLayout(self._create_local_actions(task))
 
         if task.url:
             open_button = IconButton("Abrir", "open_in_new")
@@ -318,6 +450,64 @@ class TasksPage(QWidget):
         layout.addLayout(side)
 
         return row
+
+    def _create_origin_badge(self, task: Assignment) -> QLabel:
+        badge = QLabel("Local" if task.is_local else "Externa")
+        badge.setObjectName("taskBadge")
+        badge.setProperty("origin", "local" if task.is_local else "external")
+
+        if not task.is_local:
+            badge.setToolTip(EXTERNAL_TOOLTIP)
+
+        return badge
+
+    def _create_local_actions(self, task: Assignment) -> QHBoxLayout:
+        completed = task.status == AssignmentStatus.COMPLETED
+
+        actions = QHBoxLayout()
+        actions.setSpacing(6)
+        actions.addStretch()
+
+        actions.addWidget(
+            self._create_icon_action(
+                "undo" if completed else "check_circle",
+                "Marcar como pendiente" if completed else "Marcar como completada",
+                "secondary",
+                lambda checked=False, t=task: self._toggle_task(t),
+            )
+        )
+        actions.addWidget(
+            self._create_icon_action(
+                "edit",
+                "Editar tarea",
+                "secondary",
+                lambda checked=False, t=task: self._edit_task(t),
+            )
+        )
+        actions.addWidget(
+            self._create_icon_action(
+                "delete",
+                "Eliminar tarea",
+                "danger",
+                lambda checked=False, t=task: self._delete_task(t),
+            )
+        )
+
+        return actions
+
+    @staticmethod
+    def _create_icon_action(
+        icon_name: str,
+        tooltip: str,
+        variant: str,
+        slot: Callable[..., None],
+    ) -> IconButton:
+        button = IconButton("", icon_name, variant=variant)
+        button.setProperty("iconOnly", "true")
+        button.setFixedSize(32, 32)
+        button.setToolTip(tooltip)
+        button.clicked.connect(slot)
+        return button
 
     def _create_meta(self, icon_name: str, text: str, state: str | None = None) -> QHBoxLayout:
         layout = QHBoxLayout()
