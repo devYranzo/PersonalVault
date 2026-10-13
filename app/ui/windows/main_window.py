@@ -20,8 +20,6 @@ from app.ui.pages.ai_page import AIPage
 from app.ui.pages.calendar_page import CalendarPage
 from app.ui.pages.connections_page import ConnectionsPage
 from app.ui.pages.dashboard_page import DashboardPage
-from app.ui.pages.documents_page import DocumentsPage
-from app.ui.pages.knowledge_page import KnowledgePage
 from app.ui.pages.settings_page import SettingsPage
 from app.ui.pages.tasks_page import TasksPage
 
@@ -86,8 +84,6 @@ class MainWindow(QMainWindow):
             DashboardPage(),
             TasksPage(),
             CalendarPage(),
-            DocumentsPage(),
-            KnowledgePage(),
             AIPage(),
             self.connections_page,
             SettingsPage(),
@@ -124,8 +120,6 @@ class MainWindow(QMainWindow):
             ("home.svg", "Dashboard"),
             ("tasks.svg", "Tareas"),
             ("calendar.svg", "Calendario"),
-            ("documents.svg", "Documentos"),
-            ("knowledge.svg", "Knowledge"),
             ("ai.svg", "AI"),
             ("connections.svg", "Conexiones"),
             ("settings.svg", "Ajustes"),

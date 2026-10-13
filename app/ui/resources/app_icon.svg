@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2b3038"/>
+      <stop offset="1" stop-color="#1f2329"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Fondo: mismo tono que la barra lateral -->
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+
+  <!-- Puerta de la cámara acorazada -->
+  <circle cx="256" cy="256" r="164" fill="none" stroke="#f5f6f8" stroke-width="28"/>
+  <circle cx="256" cy="256" r="118" fill="#3a414c"/>
+
+  <!-- Rueda de la manivela: aro, tres radios y pomos -->
+  <circle cx="256" cy="256" r="62" fill="none" stroke="#f5f6f8" stroke-width="14"/>
+  <g stroke="#f5f6f8" stroke-width="16" stroke-linecap="round">
+    <line x1="256" y1="256" x2="256" y2="164"/>
+    <line x1="256" y1="256" x2="335.7" y2="302"/>
+    <line x1="256" y1="256" x2="176.3" y2="302"/>
+  </g>
+  <g fill="#f5f6f8">
+    <circle cx="256" cy="164" r="15"/>
+    <circle cx="335.7" cy="302" r="15"/>
+    <circle cx="176.3" cy="302" r="15"/>
+  </g>
+
+  <!-- Eje central con el acento del calendario -->
+  <circle cx="256" cy="256" r="30" fill="#0e8a9a" stroke="#f5f6f8" stroke-width="12"/>
+</svg>
