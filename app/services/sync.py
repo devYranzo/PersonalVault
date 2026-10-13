@@ -1,8 +1,9 @@
+from collections.abc import Iterable
 from dataclasses import dataclass
 
 from sqlalchemy.orm import Session
 
-from app.core.models import Assignment, Course, Document, Event
+from app.core.models import LOCAL_SOURCE, Assignment, Course, Document, Event
 from app.core.plugins import Plugin
 from app.infrastructure.database.repositories import (
     AssignmentRepository,
@@ -10,6 +11,10 @@ from app.infrastructure.database.repositories import (
     DocumentRepository,
     EventRepository,
 )
+
+
+class InvalidSyncSourceError(Exception):
+    """Un plugin ha devuelto datos con un `source` que no le corresponde."""
 
 
 @dataclass
@@ -44,6 +49,12 @@ class SyncService:
         self.document_repository = DocumentRepository(session)
 
     def sync(self) -> SyncResult:
+        if self.plugin.info.id == LOCAL_SOURCE:
+            raise InvalidSyncSourceError(
+                f"El ID '{LOCAL_SOURCE}' está reservado para los datos "
+                "creados por el usuario y no puede usarlo un plugin."
+            )
+
         result = SyncResult()
 
         try:
@@ -62,6 +73,7 @@ class SyncService:
 
     def sync_courses(self) -> int:
         courses = self.plugin.get_courses()
+        self._validate_source(courses, "cursos")
 
         for course in courses:
             self.course_repository.save(course)
@@ -70,6 +82,7 @@ class SyncService:
 
     def sync_assignments(self) -> int:
         assignments = self.plugin.get_assignments()
+        self._validate_source(assignments, "tareas")
 
         for assignment in assignments:
             self.assignment_repository.save(assignment)
@@ -78,6 +91,7 @@ class SyncService:
 
     def sync_events(self) -> int:
         events = self.plugin.get_events()
+        self._validate_source(events, "eventos")
 
         for event in events:
             self.event_repository.save(event)
@@ -86,8 +100,31 @@ class SyncService:
 
     def sync_documents(self) -> int:
         documents = self.plugin.get_documents()
+        self._validate_source(documents, "documentos")
 
         for document in documents:
             self.document_repository.save(document)
 
         return len(documents)
+
+    def _validate_source(
+        self,
+        items: Iterable[Assignment | Course | Document | Event],
+        kind: str,
+    ) -> None:
+        """
+        Cada plugin solo puede aportar datos con su propio ID como `source`.
+
+        Evita que un plugin sobrescriba datos locales (source "local")
+        o datos de otro plugin, ya que el guardado se identifica por
+        (source, external_id).
+        """
+        expected = self.plugin.info.id
+
+        for item in items:
+            if item.source != expected:
+                raise InvalidSyncSourceError(
+                    f"El plugin '{expected}' ha devuelto {kind} con "
+                    f"source '{item.source}'. Un plugin solo puede "
+                    "aportar datos con su propio ID."
+                )

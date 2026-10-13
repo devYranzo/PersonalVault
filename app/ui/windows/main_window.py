@@ -55,9 +55,16 @@ class MainWindow(QMainWindow):
         )
 
         if stylesheet_path.exists():
-            self.setStyleSheet(
-                stylesheet_path.read_text(encoding="utf-8")
+            stylesheet = stylesheet_path.read_text(encoding="utf-8")
+
+            # Qt resuelve url() relativo al directorio de trabajo, no al
+            # .qss, así que los iconos del QSS usan este marcador.
+            stylesheet = stylesheet.replace(
+                "{{ICONS}}",
+                ICONS_DIR.as_posix(),
             )
+
+            self.setStyleSheet(stylesheet)
 
     def _setup_ui(self) -> None:
         central_widget = QWidget()
@@ -80,6 +87,7 @@ class MainWindow(QMainWindow):
             TasksPage(),
             CalendarPage(),
             DocumentsPage(),
+            KnowledgePage(),
             AIPage(),
             self.connections_page,
             SettingsPage(),
@@ -117,6 +125,7 @@ class MainWindow(QMainWindow):
             ("tasks.svg", "Tareas"),
             ("calendar.svg", "Calendario"),
             ("documents.svg", "Documentos"),
+            ("knowledge.svg", "Knowledge"),
             ("ai.svg", "AI"),
             ("connections.svg", "Conexiones"),
             ("settings.svg", "Ajustes"),

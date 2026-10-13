@@ -343,7 +343,8 @@ class TasksPage(QWidget):
 
     def _create_task_row(self, task: Assignment) -> QFrame:
         """Crea la representación visual de una tarea."""
-        status = task.status.value
+        # «Atrasada» se deriva de la fecha de entrega, no se guarda.
+        status = task.effective_status().value
         status_text, status_icon, status_color = STATUS_INFO.get(
             status, (status, "radio_button_unchecked", "#9ca3af"),
         )

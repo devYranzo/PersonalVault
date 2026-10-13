@@ -451,9 +451,12 @@ QPlainTextEdit,
 QDateTimeEdit,
 QComboBox {
     background: white;
+    color: #1f2329;
     border: 1px solid #d5d9df;
     border-radius: 6px;
     padding: 6px 8px;
+    selection-background-color: #1f2329;
+    selection-color: white;
 }
 
 QLineEdit:focus,
@@ -466,6 +469,128 @@ QComboBox:focus {
 QLineEdit:disabled,
 QDateTimeEdit:disabled {
     background: #f3f4f6;
+    color: #b0b6bf;
+}
+
+/* --- Desplegables (QComboBox y QDateTimeEdit con calendario) ------
+   Sin estilizar ::drop-down, Qt dibuja el botón nativo de Windows
+   (cuadrado, con relieve). Aquí se sustituye por un chevron plano. */
+
+QComboBox,
+QDateTimeEdit {
+    padding-right: 30px;
+}
+
+QComboBox::drop-down {
+    subcontrol-origin: padding;
+    subcontrol-position: center right;
+    width: 28px;
+    border: none;
+    background: transparent;
+}
+
+/* El selector de fecha (QDateTimeEdit con calendarPopup=True) se dibuja
+   como un QComboBox, por eso usa ::drop-down. Se selecciona por su
+   objectName ("dueInput") y no por clase para que los validadores de QSS
+   no avisen de un subcontrol "no válido" que Qt sí aplica en este modo. */
+#dueInput::drop-down {
+    subcontrol-origin: padding;
+    subcontrol-position: center right;
+    width: 28px;
+    border: none;
+    background: transparent;
+}
+
+QComboBox::down-arrow,
+QDateTimeEdit::down-arrow {
+    image: url({{ICONS}}/expand_more.svg);
+    width: 18px;
+    height: 18px;
+}
+
+QComboBox::down-arrow:disabled,
+QDateTimeEdit::down-arrow:disabled {
+    image: none;
+}
+
+/* Lista desplegable del QComboBox */
+QComboBox QAbstractItemView {
+    background: white;
+    color: #1f2329;
+    border: 1px solid #d5d9df;
+    border-radius: 6px;
+    padding: 4px;
+    outline: 0;
+    selection-background-color: #eef0f3;
+    selection-color: #1f2329;
+}
+
+QComboBox QAbstractItemView::item {
+    min-height: 26px;
+    padding: 0 8px;
+    border-radius: 4px;
+}
+
+/* --- Calendario desplegable ------------------------------------- */
+
+QCalendarWidget {
+    background: white;
+    border: 1px solid #d5d9df;
+    border-radius: 8px;
+}
+
+QCalendarWidget QWidget#qt_calendar_navigationbar {
+    background: white;
+    border-bottom: 1px solid #eceef1;
+}
+
+QCalendarWidget QToolButton {
+    background: transparent;
+    color: #1f2329;
+    border: none;
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-weight: 600;
+}
+
+QCalendarWidget QToolButton:hover {
+    background: #eceef1;
+}
+
+QCalendarWidget QToolButton::menu-indicator {
+    image: none;
+}
+
+QCalendarWidget QMenu {
+    background: white;
+    color: #1f2329;
+    border: 1px solid #d5d9df;
+}
+
+QCalendarWidget QMenu::item:selected {
+    background: #eef0f3;
+    color: #1f2329;
+}
+
+QCalendarWidget QSpinBox {
+    background: white;
+    color: #1f2329;
+    border: 1px solid #d5d9df;
+    border-radius: 4px;
+    padding: 2px 6px;
+    selection-background-color: #1f2329;
+    selection-color: white;
+}
+
+QCalendarWidget QAbstractItemView:enabled {
+    background: white;
+    color: #1f2329;
+    outline: 0;
+    selection-background-color: #1f2329;
+    selection-color: white;
+}
+
+QCalendarWidget QAbstractItemView:disabled {
     color: #b0b6bf;
 }
 

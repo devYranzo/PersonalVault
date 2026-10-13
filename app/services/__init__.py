@@ -1,4 +1,8 @@
-from app.services.sync import SyncResult, SyncService
+from app.services.sync import (
+    InvalidSyncSourceError,
+    SyncResult,
+    SyncService,
+)
 from app.services.tasks import (
     InvalidTaskError,
     ReadOnlyTaskError,
@@ -8,6 +12,7 @@ from app.services.tasks import (
 )
 
 __all__ = [
+    "InvalidSyncSourceError",
     "InvalidTaskError",
     "ReadOnlyTaskError",
     "SyncResult",

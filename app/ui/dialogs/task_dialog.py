@@ -1,7 +1,8 @@
 from dataclasses import dataclass
 from datetime import datetime
 
-from PySide6.QtCore import QDateTime, QTime
+from PySide6.QtCore import QDateTime, QLocale, QSize, Qt, QTime
+from PySide6.QtGui import QColor, QFont, QIcon, QTextCharFormat
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -12,16 +13,18 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QPlainTextEdit,
+    QToolButton,
     QVBoxLayout,
 )
 
 from app.core.models import Assignment, AssignmentStatus
+from app.ui.resources.icons import svg_pixmap
 
+# «Atrasada» no es elegible: se calcula a partir de la fecha de entrega.
 STATUS_LABELS = {
     AssignmentStatus.PENDING: "Pendiente",
     AssignmentStatus.IN_PROGRESS: "En progreso",
     AssignmentStatus.COMPLETED: "Completada",
-    AssignmentStatus.OVERDUE: "Atrasada",
 }
 
 
@@ -76,8 +79,10 @@ class TaskDialog(QDialog):
         self.due_check = QCheckBox("Con fecha de entrega")
 
         self.due_input = QDateTimeEdit()
+        self.due_input.setObjectName("dueInput")
         self.due_input.setCalendarPopup(True)
         self.due_input.setDisplayFormat("dd/MM/yyyy HH:mm")
+        self._style_calendar()
 
         default_due = QDateTime.currentDateTime().addDays(1)
         default_due.setTime(QTime(23, 59))
@@ -124,6 +129,46 @@ class TaskDialog(QDialog):
         buttons.rejected.connect(self.reject)
 
         layout.addWidget(buttons)
+
+    def _style_calendar(self) -> None:
+        """
+        Aspecto claro y legible del calendario desplegable.
+
+        Se hace en código además de en el QSS porque la cabecera, los fines
+        de semana y las flechas de mes no se pueden controlar solo con QSS.
+        """
+        calendar = self.due_input.calendarWidget()
+
+        calendar.setLocale(
+            QLocale(QLocale.Language.Spanish, QLocale.Country.Spain)
+        )
+        calendar.setFirstDayOfWeek(Qt.DayOfWeek.Monday)
+        calendar.setGridVisible(False)
+        calendar.setVerticalHeaderFormat(
+            calendar.VerticalHeaderFormat.NoVerticalHeader
+        )
+
+        header = QTextCharFormat()
+        header.setForeground(QColor("#8a919c"))
+        header.setBackground(QColor("#ffffff"))
+        header.setFontWeight(QFont.Weight.DemiBold)
+        calendar.setHeaderTextFormat(header)
+
+        # Por defecto Qt pinta sábado y domingo en rojo
+        weekend = QTextCharFormat()
+        weekend.setForeground(QColor("#1f2329"))
+        calendar.setWeekdayTextFormat(Qt.DayOfWeek.Saturday, weekend)
+        calendar.setWeekdayTextFormat(Qt.DayOfWeek.Sunday, weekend)
+
+        for name, icon_name in (
+            ("qt_calendar_prevmonth", "chevron_left"),
+            ("qt_calendar_nextmonth", "chevron_right"),
+        ):
+            button = calendar.findChild(QToolButton, name)
+
+            if button is not None:
+                button.setIcon(QIcon(svg_pixmap(icon_name, "#1f2329", 18)))
+                button.setIconSize(QSize(18, 18))
 
     def _load(self, task: Assignment) -> None:
         self.title_input.setText(task.title)

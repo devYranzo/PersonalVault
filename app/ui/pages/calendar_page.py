@@ -79,7 +79,7 @@ def _task_to_item(task) -> CalendarItem | None:
     if when is None:
         return None
 
-    status = task.status.value
+    status = task.effective_status().value
     kind = {"completed": "done", "overdue": "overdue"}.get(status, "task")
 
     return CalendarItem(
