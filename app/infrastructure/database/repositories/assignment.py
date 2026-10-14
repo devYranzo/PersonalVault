@@ -1,3 +1,4 @@
+from sqlalchemy import delete as sql_delete
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -142,3 +143,13 @@ class AssignmentRepository(
         self.session.flush()
 
         return True
+
+    def delete_by_source(self, source: str) -> int:
+        """Elimina todas las tareas de una fuente y devuelve cuántas eran."""
+        result = self.session.execute(
+            sql_delete(AssignmentModel).where(
+                AssignmentModel.source == source,
+            )
+        )
+
+        return result.rowcount or 0

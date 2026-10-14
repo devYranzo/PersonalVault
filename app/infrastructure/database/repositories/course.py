@@ -1,3 +1,4 @@
+from sqlalchemy import delete as sql_delete
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -121,3 +122,13 @@ class CourseRepository(
         self.session.flush()
 
         return True
+
+    def delete_by_source(self, source: str) -> int:
+        """Elimina todos los cursos de una fuente y devuelve cuántos eran."""
+        result = self.session.execute(
+            sql_delete(CourseModel).where(
+                CourseModel.source == source,
+            )
+        )
+
+        return result.rowcount or 0

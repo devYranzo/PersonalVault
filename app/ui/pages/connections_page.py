@@ -15,8 +15,8 @@ from app.core.plugins import (
     PluginStatus,
 )
 from app.infrastructure.database.database import SessionLocal
-from app.services import SyncResult, SyncService
-from app.ui.layouts.flow_layout import FlowLayout, FlowScrollArea  # ajusta las rutas
+from app.services import PluginDataService, SyncResult, SyncService
+from app.ui.layouts.flow_layout import FlowLayout, FlowScrollArea
 from app.ui.resources.icons import IconButton, svg_pixmap
 
 CARD_WIDTH = 420
@@ -248,6 +248,13 @@ class ConnectionsPage(QWidget):
             sync_button.clicked.connect(
                 lambda checked=False, pid=info.id: self._sync_plugin(pid),
             )
+
+            # Un plugin que necesita autenticación no puede sincronizar
+            # hasta que esté conectado.
+            if plugin.requires_connection() and not connected:
+                sync_button.setEnabled(False)
+                sync_button.setToolTip("Conecta el plugin antes de sincronizar")
+
             buttons.addWidget(sync_button)
 
         buttons.addStretch()
@@ -348,10 +355,7 @@ class ConnectionsPage(QWidget):
 
     def _toggle_plugin(self, plugin_id: str) -> None:
         if self.plugin_manager.is_enabled(plugin_id):
-            try:
-                self.plugin_manager.disable(plugin_id)
-            except Exception as exc:
-                self._show_error("No se pudo desactivar el plugin.", str(exc))
+            if not self._disable_plugin(plugin_id):
                 return
         else:
             try:
@@ -361,6 +365,71 @@ class ConnectionsPage(QWidget):
                 return
 
         self.refresh_plugins()
+
+    def _disable_plugin(self, plugin_id: str) -> bool:
+        """
+        Desactiva un plugin y elimina todos sus datos sincronizados.
+
+        Antes de hacer nada pide confirmación al usuario. Primero se
+        borran los datos y después se desactiva el plugin, de modo que
+        si el borrado falla no queden datos huérfanos de un plugin
+        desactivado.
+
+        Devuelve False si el usuario cancela o si el borrado falla
+        (en ambos casos no se ha cambiado nada).
+        """
+        plugin_name = self.plugin_manager.get_plugin(plugin_id).info.name
+
+        if not self._confirm_disable(plugin_name):
+            return False
+
+        try:
+            with SessionLocal() as session:
+                PluginDataService(session).purge(plugin_id)
+        except Exception as exc:
+            self._show_error(
+                "No se pudieron eliminar los datos del plugin.",
+                str(exc),
+            )
+            return False
+
+        try:
+            self.plugin_manager.disable(plugin_id)
+        except Exception as exc:
+            # Los datos ya se han eliminado: se refresca para mostrar
+            # el estado real del plugin (error) antes de avisar.
+            self.refresh_plugins()
+            self._show_error("No se pudo desactivar el plugin.", str(exc))
+            return False
+
+        return True
+
+    def _confirm_disable(self, plugin_name: str) -> bool:
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Icon.Warning)
+        box.setWindowTitle("Desactivar plugin")
+        box.setText(f"¿Desactivar «{plugin_name}»?")
+        box.setInformativeText(
+            "Se eliminarán de Personal Vault todos los datos que este "
+            "plugin ha sincronizado: cursos, tareas, eventos y documentos.\n\n"
+            "Tus tareas locales no se verán afectadas. Si vuelves a "
+            "activar el plugin, tendrás que sincronizar de nuevo."
+        )
+
+        confirm_button = box.addButton(
+            "Desactivar y eliminar datos",
+            QMessageBox.ButtonRole.DestructiveRole,
+        )
+        cancel_button = box.addButton(
+            "Cancelar",
+            QMessageBox.ButtonRole.RejectRole,
+        )
+        box.setDefaultButton(cancel_button)
+        box.setEscapeButton(cancel_button)
+
+        box.exec()
+
+        return box.clickedButton() is confirm_button
 
     def _toggle_connection(self, plugin_id: str) -> None:
         plugin = self.plugin_manager.get_plugin(plugin_id)
@@ -400,6 +469,14 @@ class ConnectionsPage(QWidget):
             self._show_error(
                 "Plugin no activo",
                 "Activa el plugin antes de sincronizarlo.",
+            )
+            return
+
+        if plugin.requires_connection() and not plugin.is_connected():
+            self._show_error(
+                "Plugin no conectado",
+                "Conecta el plugin con su servicio externo antes de "
+                "sincronizarlo.",
             )
             return
 

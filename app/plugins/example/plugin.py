@@ -38,7 +38,7 @@ class ExamplePlugin(Plugin):
         print(f"[{self.info.id}] Plugin detenido")
 
     def requires_connection(self) -> bool:
-        return False
+        return True
     
     def connect(self) -> None:
         self._connected = True

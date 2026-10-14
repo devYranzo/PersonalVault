@@ -1,3 +1,4 @@
+from sqlalchemy import delete as sql_delete
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -148,3 +149,13 @@ class EventRepository(
         self.session.flush()
 
         return True
+
+    def delete_by_source(self, source: str) -> int:
+        """Elimina todos los eventos de una fuente y devuelve cuántos eran."""
+        result = self.session.execute(
+            sql_delete(EventModel).where(
+                EventModel.source == source,
+            )
+        )
+
+        return result.rowcount or 0

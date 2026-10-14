@@ -17,6 +17,16 @@ class InvalidSyncSourceError(Exception):
     """Un plugin ha devuelto datos con un `source` que no le corresponde."""
 
 
+class PluginNotConnectedError(Exception):
+    """El plugin necesita conexión con su servicio externo y no está conectado."""
+
+    def __init__(self, plugin_name: str) -> None:
+        super().__init__(
+            f"El plugin '{plugin_name}' necesita estar conectado a su "
+            "servicio externo para poder sincronizar. Conéctalo primero."
+        )
+
+
 @dataclass
 class SyncResult:
     courses: int = 0
@@ -54,6 +64,12 @@ class SyncService:
                 f"El ID '{LOCAL_SOURCE}' está reservado para los datos "
                 "creados por el usuario y no puede usarlo un plugin."
             )
+
+        # Un plugin que necesita autenticación (p. ej. Google Classroom)
+        # no puede sincronizar sin estar conectado. Se comprueba antes de
+        # tocar la base de datos.
+        if self.plugin.requires_connection() and not self.plugin.is_connected():
+            raise PluginNotConnectedError(self.plugin.info.name)
 
         result = SyncResult()
 
