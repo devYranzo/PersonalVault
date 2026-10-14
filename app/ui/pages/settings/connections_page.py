@@ -51,24 +51,12 @@ class ConnectionsPage(QWidget):
 
     def _setup_ui(self) -> None:
         root_layout = QVBoxLayout(self)
-        root_layout.setContentsMargins(40, 40, 40, 30)
+        root_layout.setContentsMargins(0, 0, 0, 0)
         root_layout.setSpacing(8)
-
-        title = QLabel("Conexiones")
-        title.setObjectName("pageTitle")
-
-        description = QLabel(
-            "Activa los plugins que necesites, conéctalos con tus "
-            "servicios externos y sincroniza tus datos en Personal Vault."
-        )
-        description.setObjectName("pageDescription")
-        description.setWordWrap(True)
 
         self.summary_label = QLabel()
         self.summary_label.setObjectName("pageSummary")
 
-        root_layout.addWidget(title)
-        root_layout.addWidget(description)
         root_layout.addWidget(self.summary_label)
         root_layout.addSpacing(12)
 

@@ -705,3 +705,52 @@ QLabel#calendarItemMeta {
 QPushButton[variant][iconOnly="true"] {
     padding: 0;
 }
+
+/* ============================================================
+   AJUSTES
+   ============================================================ */
+
+/* Barra de pestañas: franja blanca redondeada sobre el fondo de la app.
+   La pestaña activa se marca con fondo gris claro y borde. */
+QFrame#settingsTabBar {
+    background: white;
+    border: 1px solid #e3e5e9;
+    border-radius: 12px;
+}
+
+QPushButton#settingsTab {
+    background: transparent;
+    color: #6b7380;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    padding: 8px 18px;
+    font-weight: 600;
+}
+
+QPushButton#settingsTab:hover {
+    background: #f3f4f6;
+    color: #1f2329;
+}
+
+QPushButton#settingsTab:checked,
+QPushButton#settingsTab:checked:hover {
+    background: #f3f4f6;
+    color: #1f2329;
+    border-color: #d5d9df;
+}
+
+QFrame#settingsCard {
+    background: white;
+    border: 1px solid #e3e5e9;
+    border-radius: 10px;
+}
+
+QLabel#settingsRowLabel {
+    color: #8a919c;
+    font-size: 12px;
+}
+
+QLabel#settingsRowValue {
+    color: #1f2329;
+    font-size: 14px;
+}

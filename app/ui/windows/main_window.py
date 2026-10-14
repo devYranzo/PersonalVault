@@ -14,11 +14,11 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app.core.config import APP_NAME
 from app.core.plugin_system import create_plugin_manager
 from app.core.plugins import PluginManager
 from app.ui.pages.ai_page import AIPage
 from app.ui.pages.calendar_page import CalendarPage
-from app.ui.pages.connections_page import ConnectionsPage
 from app.ui.pages.dashboard_page import DashboardPage
 from app.ui.pages.settings_page import SettingsPage
 from app.ui.pages.tasks_page import TasksPage
@@ -29,12 +29,24 @@ ICONS_DIR = (
     / "icons"
 )
 
+# Botones de la barra lateral: (icono, texto).
+# El orden de `self.pages` debe coincidir con NAVIGATION seguido de
+# SETTINGS_NAVIGATION: Ajustes es el último y va anclado abajo del todo.
+NAVIGATION = [
+    ("home.svg", "Dashboard"),
+    ("tasks.svg", "Tareas"),
+    ("calendar.svg", "Calendario"),
+    ("ai.svg", "AI"),
+]
+
+SETTINGS_NAVIGATION = ("settings.svg", "Ajustes")
+
 
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
 
-        self.setWindowTitle("Personal Vault")
+        self.setWindowTitle(APP_NAME)
         self.resize(1200, 600)
         self.setMinimumSize(900, 600)
 
@@ -75,18 +87,17 @@ class MainWindow(QMainWindow):
         self.sidebar = self._create_sidebar()
         self.content = QStackedWidget()
 
-        self.connections_page = ConnectionsPage(
+        self.settings_page = SettingsPage(
             plugin_manager=self.plugin_manager,
         )
 
-        # El orden debe coincidir con `navigation` en _create_sidebar
+        # El orden debe coincidir con los botones de la barra lateral
         self.pages = [
             DashboardPage(),
             TasksPage(),
             CalendarPage(),
             AIPage(),
-            self.connections_page,
-            SettingsPage(),
+            self.settings_page,
         ]
 
         for page in self.pages:
@@ -104,7 +115,7 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(16, 20, 16, 16)
         layout.setSpacing(6)
 
-        title = QLabel("Personal Vault")
+        title = QLabel(APP_NAME)
         title.setObjectName("appTitle")
         layout.addWidget(title)
 
@@ -116,40 +127,34 @@ class MainWindow(QMainWindow):
 
         self.navigation_buttons: list[QPushButton] = []
 
-        navigation = [
-            ("home.svg", "Dashboard"),
-            ("tasks.svg", "Tareas"),
-            ("calendar.svg", "Calendario"),
-            ("ai.svg", "AI"),
-            ("connections.svg", "Conexiones"),
-            ("settings.svg", "Ajustes"),
-        ]
-
-        for icon, text in navigation:
-            button = QPushButton(text)
-            button.setIcon(QIcon(str(ICONS_DIR / icon)))
-            button.setIconSize(QSize(20, 20))
-
-            button.setObjectName("navButton")
-            button.setCheckable(True)
-            button.setCursor(Qt.CursorShape.PointingHandCursor)
-
-            button.setSizePolicy(
-                QSizePolicy.Policy.Expanding,
-                QSizePolicy.Policy.Fixed,
-            )
-            button.setMinimumHeight(42)
-
-            self.navigation_buttons.append(button)
-            layout.addWidget(button)
+        for icon, text in NAVIGATION:
+            layout.addWidget(self._create_nav_button(icon, text))
 
         layout.addStretch()
 
-        status = QLabel("Personal Vault v0.1.0")
-        status.setObjectName("sidebarStatus")
-        layout.addWidget(status)
+        # Ajustes, separado de las páginas, abajo del todo
+        layout.addWidget(self._create_nav_button(*SETTINGS_NAVIGATION))
 
         return sidebar
+
+    def _create_nav_button(self, icon: str, text: str) -> QPushButton:
+        button = QPushButton(text)
+        button.setIcon(QIcon(str(ICONS_DIR / icon)))
+        button.setIconSize(QSize(20, 20))
+
+        button.setObjectName("navButton")
+        button.setCheckable(True)
+        button.setCursor(Qt.CursorShape.PointingHandCursor)
+
+        button.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Fixed,
+        )
+        button.setMinimumHeight(42)
+
+        self.navigation_buttons.append(button)
+
+        return button
 
     def _connect_navigation(self) -> None:
         for index, button in enumerate(self.navigation_buttons):
