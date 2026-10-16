@@ -496,6 +496,11 @@ class ConnectionsPage(QWidget):
                 f"Eventos: {result.events}\n"
                 f"Documentos: {result.documents}\n\n"
                 f"Total: {result.total}"
+                + (
+                    f"\nEliminados por ya no existir en el origen: {result.removed}"
+                    if result.removed
+                    else ""
+                )
             ),
         )
 

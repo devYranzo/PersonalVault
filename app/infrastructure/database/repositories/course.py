@@ -1,3 +1,5 @@
+from collections.abc import Collection
+
 from sqlalchemy import delete as sql_delete
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -132,3 +134,18 @@ class CourseRepository(
         )
 
         return result.rowcount or 0
+
+    def delete_missing(
+        self,
+        source: str,
+        keep_external_ids: Collection[str],
+    ) -> int:
+        """
+        Elimina los PLURAL de `source` que ya no vienen de la fuente
+        externa y devuelve cuántos eran.
+        """
+        return self._delete_missing(
+            CourseModel,
+            source,
+            keep_external_ids,
+        )

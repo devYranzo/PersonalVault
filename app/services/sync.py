@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from sqlalchemy.orm import Session
 
 from app.core.models import LOCAL_SOURCE, Assignment, Course, Document, Event
-from app.core.plugins import Plugin
+from app.core.plugins import Plugin, PluginCapabilities
 from app.infrastructure.database.repositories import (
     AssignmentRepository,
     CourseRepository,
@@ -33,6 +33,21 @@ class SyncResult:
     assignments: int = 0
     events: int = 0
     documents: int = 0
+
+    # Elementos que ya no existen en la fuente externa y se han borrado.
+    removed_courses: int = 0
+    removed_assignments: int = 0
+    removed_events: int = 0
+    removed_documents: int = 0
+
+    @property
+    def removed(self) -> int:
+        return (
+            self.removed_courses
+            + self.removed_assignments
+            + self.removed_events
+            + self.removed_documents
+        )
 
     @property
     def total(self) -> int:
@@ -74,10 +89,13 @@ class SyncService:
         result = SyncResult()
 
         try:
-            result.courses = self.sync_courses()
-            result.assignments = self.sync_assignments()
-            result.events = self.sync_events()
-            result.documents = self.sync_documents()
+            result.courses, result.removed_courses = self.sync_courses()
+            (
+                result.assignments,
+                result.removed_assignments,
+            ) = self.sync_assignments()
+            result.events, result.removed_events = self.sync_events()
+            result.documents, result.removed_documents = self.sync_documents()
 
             self.session.commit()
 
@@ -87,41 +105,95 @@ class SyncService:
 
         return result
 
-    def sync_courses(self) -> int:
+    def sync_courses(self) -> tuple[int, int]:
         courses = self.plugin.get_courses()
         self._validate_source(courses, "cursos")
 
         for course in courses:
             self.course_repository.save(course)
 
-        return len(courses)
+        removed = self._reconcile(
+            PluginCapabilities.COURSES,
+            self.course_repository,
+            courses,
+        )
 
-    def sync_assignments(self) -> int:
+        return len(courses), removed
+
+    def sync_assignments(self) -> tuple[int, int]:
         assignments = self.plugin.get_assignments()
         self._validate_source(assignments, "tareas")
 
         for assignment in assignments:
             self.assignment_repository.save(assignment)
 
-        return len(assignments)
+        removed = self._reconcile(
+            PluginCapabilities.ASSIGNMENTS,
+            self.assignment_repository,
+            assignments,
+        )
 
-    def sync_events(self) -> int:
+        return len(assignments), removed
+
+    def sync_events(self) -> tuple[int, int]:
         events = self.plugin.get_events()
         self._validate_source(events, "eventos")
 
         for event in events:
             self.event_repository.save(event)
 
-        return len(events)
+        removed = self._reconcile(
+            PluginCapabilities.EVENTS,
+            self.event_repository,
+            events,
+        )
 
-    def sync_documents(self) -> int:
+        return len(events), removed
+
+    def sync_documents(self) -> tuple[int, int]:
         documents = self.plugin.get_documents()
         self._validate_source(documents, "documentos")
 
         for document in documents:
             self.document_repository.save(document)
 
-        return len(documents)
+        removed = self._reconcile(
+            PluginCapabilities.DOCUMENTS,
+            self.document_repository,
+            documents,
+        )
+
+        return len(documents), removed
+
+    def _reconcile(
+        self,
+        capability: PluginCapabilities,
+        repository: (
+            CourseRepository
+            | AssignmentRepository
+            | EventRepository
+            | DocumentRepository
+        ),
+        items: Iterable[Assignment | Course | Document | Event],
+    ) -> int:
+        """
+        Borra lo que el plugin sincronizó antes y ya no devuelve.
+
+        Solo se reconcilian los tipos que el plugin declara en sus
+        `capabilities`: si no declara, por ejemplo, EVENTS, no se le
+        atribuye ningún evento y nunca se le borra ninguno por
+        devolver una lista vacía por defecto.
+
+        Un plugin debe lanzar una excepción si falla al consultar su
+        servicio. Devolver [] significa "ya no hay nada" y se borra.
+        """
+        if capability not in self.plugin.info.capabilities:
+            return 0
+
+        return repository.delete_missing(
+            self.plugin.info.id,
+            {item.external_id for item in items},
+        )
 
     def _validate_source(
         self,
