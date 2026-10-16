@@ -108,6 +108,7 @@ class SyncService:
     def sync_courses(self) -> tuple[int, int]:
         courses = self.plugin.get_courses()
         self._validate_source(courses, "cursos")
+        courses = [self._normalize(course) for course in courses]
 
         for course in courses:
             self.course_repository.save(course)
@@ -123,6 +124,7 @@ class SyncService:
     def sync_assignments(self) -> tuple[int, int]:
         assignments = self.plugin.get_assignments()
         self._validate_source(assignments, "tareas")
+        assignments = [self._normalize(assignment) for assignment in assignments]
 
         for assignment in assignments:
             self.assignment_repository.save(assignment)
@@ -138,6 +140,7 @@ class SyncService:
     def sync_events(self) -> tuple[int, int]:
         events = self.plugin.get_events()
         self._validate_source(events, "eventos")
+        events = [self._normalize(event) for event in events]
 
         for event in events:
             self.event_repository.save(event)
@@ -153,6 +156,7 @@ class SyncService:
     def sync_documents(self) -> tuple[int, int]:
         documents = self.plugin.get_documents()
         self._validate_source(documents, "documentos")
+        documents = [self._normalize(document) for document in documents]
 
         for document in documents:
             self.document_repository.save(document)
@@ -164,6 +168,29 @@ class SyncService:
         )
 
         return len(documents), removed
+
+    def _internal_id(self, external_id: str) -> str:
+        """ID interno de Personal Vault: único entre plugins."""
+        return f"{self.plugin.info.id}:{external_id}"
+
+    def _normalize[T: Assignment | Course | Document | Event](self, item: T) -> T:
+        """
+        Asigna el ID interno y reescribe `course_id`.
+
+        El `id` que ponga el plugin se ignora: lo genera el servicio a
+        partir de (source, external_id), así dos plugins no pueden chocar
+        en la clave primaria. Contrato para los plugins: `course_id` de
+        tareas, eventos y documentos es el `external_id` del curso, y aquí
+        se convierte al `id` interno de ese curso.
+        """
+        update: dict[str, str] = {"id": self._internal_id(item.external_id)}
+
+        course_id = getattr(item, "course_id", None)
+
+        if course_id is not None:
+            update["course_id"] = self._internal_id(course_id)
+
+        return item.model_copy(update=update)
 
     def _reconcile(
         self,
