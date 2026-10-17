@@ -1,6 +1,10 @@
-from PySide6.QtCore import Qt, QTimer
+from collections.abc import Callable
+from dataclasses import dataclass
+from itertools import count
+from typing import Any
+
+from PySide6.QtCore import Qt, QThreadPool, QTimer, Slot
 from PySide6.QtWidgets import (
-    QApplication,
     QFrame,
     QHBoxLayout,
     QLabel,
@@ -8,6 +12,8 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+
+from sqlalchemy.orm import Session
 
 from app.core.plugins import (
     ManagedPlugin,
@@ -18,6 +24,7 @@ from app.infrastructure.database.database import SessionLocal
 from app.services import PluginDataService, SyncResult, SyncService
 from app.ui.layouts.flow_layout import FlowLayout, FlowScrollArea
 from app.ui.resources.icons import IconButton, svg_pixmap
+from app.ui.workers import Worker
 
 CARD_WIDTH = 420
 
@@ -36,13 +43,28 @@ STATUS_LABELS = {
     PluginStatus.ERROR: ("Error", "error"),
 }
 
+@dataclass
+class _BackgroundJob:
+    plugin_id: str
+    worker: Worker
+    error_title: str
+    on_success: Callable[[Any], None] | None
 
 class ConnectionsPage(QWidget):
-    def __init__(self, plugin_manager: PluginManager) -> None:
+    def __init__(self, plugin_manager: PluginManager, session_factory: Callable[[], Session] = SessionLocal,) -> None:
         super().__init__()
 
         self.plugin_manager = plugin_manager
+        self._session_factory = session_factory
         self.plugin_cards: dict[str, QFrame] = {}
+
+        self._pool = QThreadPool(self)
+        self._pool.setMaxThreadCount(1)
+
+        self._job_ids = count(1)
+        self._jobs: dict[int, _BackgroundJob] = {}
+
+        self._busy: dict[str, str] = {}
 
         self._setup_ui()
         self.refresh_plugins()
@@ -158,6 +180,11 @@ class ConnectionsPage(QWidget):
             managed_plugin.status, ("Desconocido", "discovered"),
         )
 
+        busy_text = self._busy.get(info.id)
+
+        if busy_text:
+            status_text, status_state = busy_text, "discovered"
+
         card = QFrame()
         card.setObjectName("pluginCard")
         card.setFixedWidth(CARD_WIDTH)
@@ -229,6 +256,10 @@ class ConnectionsPage(QWidget):
             connect_button.setEnabled(False)
             connect_button.setToolTip("Activa el plugin antes de conectarlo")
 
+        if busy_text:
+            connect_button.setEnabled(False)
+            connect_button.setToolTip("Hay una operación en curso")
+
         buttons.addWidget(connect_button)
 
         if enabled:
@@ -243,6 +274,10 @@ class ConnectionsPage(QWidget):
                 sync_button.setEnabled(False)
                 sync_button.setToolTip("Conecta el plugin antes de sincronizar")
 
+            if busy_text:
+                sync_button.setEnabled(False)
+                sync_button.setToolTip("Hay una operación en curso")
+
             buttons.addWidget(sync_button)
 
         buttons.addStretch()
@@ -255,6 +290,11 @@ class ConnectionsPage(QWidget):
         toggle_button.clicked.connect(
             lambda checked=False, pid=info.id: self._toggle_plugin(pid),
         )
+
+        if busy_text:
+            toggle_button.setEnabled(False)
+            toggle_button.setToolTip("Hay una operación en curso")
+
         buttons.addWidget(toggle_button)
 
         root_layout.addLayout(buttons)
@@ -342,6 +382,9 @@ class ConnectionsPage(QWidget):
     # ------------------------------------------------------------- acciones
 
     def _toggle_plugin(self, plugin_id: str) -> None:
+        if plugin_id in self._busy:
+            return
+        
         if self.plugin_manager.is_enabled(plugin_id):
             if not self._disable_plugin(plugin_id):
                 return
@@ -372,7 +415,7 @@ class ConnectionsPage(QWidget):
             return False
 
         try:
-            with SessionLocal() as session:
+            with self._session_factory() as session:
                 PluginDataService(session).purge(plugin_id)
         except Exception as exc:
             self._show_error(
@@ -420,34 +463,37 @@ class ConnectionsPage(QWidget):
         return box.clickedButton() is confirm_button
 
     def _toggle_connection(self, plugin_id: str) -> None:
+        if plugin_id in self._busy:
+            return
+
         plugin = self.plugin_manager.get_plugin(plugin_id)
 
         if plugin is None:
             return
 
-        try:
-            if plugin.is_connected():
-                plugin.disconnect()
-            else:
-                if not self.plugin_manager.is_enabled(plugin_id):
-                    self._show_error(
-                        "Plugin no activo",
-                        "Activa el plugin antes de conectarlo.",
-                    )
-                    return
+        if plugin.is_connected():
+            label, job = "Desconectando…", plugin.disconnect
+        else:
+            if not self.plugin_manager.is_enabled(plugin_id):
+                self._show_error(
+                    "Plugin no activo",
+                    "Activa el plugin antes de conectarlo.",
+                )
+                return
 
-                plugin.connect()
+            label, job = "Conectando…", plugin.connect
 
-        except Exception as exc:
-            self._show_error(
-                "No se pudo cambiar el estado de conexión.",
-                str(exc),
-            )
-            return
-
-        self.refresh_plugins()
+        self._run_in_background(
+            plugin_id,
+            label,
+            job,
+            error_title="No se pudo cambiar el estado de conexión.",
+        )
 
     def _sync_plugin(self, plugin_id: str) -> None:
+        if plugin_id in self._busy:
+            return
+
         plugin = self.plugin_manager.get_plugin(plugin_id)
 
         if plugin is None:
@@ -468,21 +514,91 @@ class ConnectionsPage(QWidget):
             )
             return
 
-        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        def job() -> SyncResult:
+            # Se ejecuta en el hilo de trabajo: la sesión se crea y se
+            # cierra aquí dentro, nunca se comparte con la interfaz.
+            with self._session_factory() as session:
+                return SyncService(session=session, plugin=plugin).sync()
 
-        try:
-            with SessionLocal() as session:
-                service = SyncService(session=session, plugin=plugin)
-                result = service.sync()
+        self._run_in_background(
+            plugin_id,
+            "Sincronizando…",
+            job,
+            error_title="No se pudo sincronizar el plugin.",
+            on_success=lambda result: self._show_sync_result(
+                plugin.info.name,
+                result,
+            ),
+        )
 
-        except Exception as exc:
-            QApplication.restoreOverrideCursor()
-            self._show_error("No se pudo sincronizar el plugin.", str(exc))
-            return
+    # ----------------------------------------------------- segundo plano
 
-        QApplication.restoreOverrideCursor()
+    def is_busy(self, plugin_id: str) -> bool:
+        """True mientras el plugin conecta, desconecta o sincroniza."""
+        return plugin_id in self._busy
 
-        self._show_sync_result(plugin.info.name, result)
+    def wait_for_background_jobs(self, timeout_ms: int = 5000) -> bool:
+        """Espera a que acaben las operaciones en segundo plano."""
+        return self._pool.waitForDone(timeout_ms)
+
+    def _run_in_background(
+        self,
+        plugin_id: str,
+        label: str,
+        job: Callable[[], Any],
+        *,
+        error_title: str,
+        on_success: Callable[[Any], None] | None = None,
+    ) -> None:
+        """
+        Ejecuta `job` en un hilo y marca el plugin como ocupado.
+
+        `on_success` y el mensaje de error se ejecutan de nuevo en el
+        hilo de la interfaz. Mientras el plugin está ocupado no se puede
+        activar, desactivar, conectar ni sincronizar.
+        """
+        job_id = next(self._job_ids)
+
+        worker = Worker(job_id, job)
+        worker.signals.succeeded.connect(self._on_job_succeeded)
+        worker.signals.failed.connect(self._on_job_failed)
+
+        self._jobs[job_id] = _BackgroundJob(
+            plugin_id=plugin_id,
+            worker=worker,
+            error_title=error_title,
+            on_success=on_success,
+        )
+        self._busy[plugin_id] = label
+
+        self.refresh_plugins()
+
+        self._pool.start(worker)
+
+    @Slot(int, object)
+    def _on_job_succeeded(self, job_id: int, result: object) -> None:
+        job = self._finish_job(job_id)
+
+        if job is not None and job.on_success is not None:
+            job.on_success(result)
+
+    @Slot(int, object)
+    def _on_job_failed(self, job_id: int, error: object) -> None:
+        job = self._finish_job(job_id)
+
+        if job is not None:
+            self._show_error(job.error_title, str(error))
+
+    def _finish_job(self, job_id: int) -> _BackgroundJob | None:
+        job = self._jobs.pop(job_id, None)
+
+        if job is None:
+            return None
+
+        self._busy.pop(job.plugin_id, None)
+        self.refresh_plugins()
+
+        return job
 
     def _show_sync_result(self, plugin_name: str, result: SyncResult) -> None:
         QMessageBox.information(
